@@ -42,6 +42,8 @@ El servidor se puede ejecutar usando los comandos declarados en el `package.json
 
 _Nota: Para ejectar el servidor correctamente las variables de entorno deben estar correctamente configuradas y definidas. Tambien se debe asegurar de que todas las dependencias estén instaladas._
 
+_Nota 2: El uso de los comandos `npm start` o `npm run dev` para inciar el servidor solo difiere en el estado watch de Node.js, con `npm start` este modo esta deshabilitado._
+
 ## Roles y permisos
 
 Admin
@@ -58,3 +60,61 @@ User
 
 - El usuario común podrá consultar eventos y reservar tickets.
 - Representa a un asistente.
+
+## Estructura de carpetas
+
+```bash
+├── src
+│   ├── config
+│   ├── constants
+│   ├── dao
+│   ├── dto
+│   ├── errors
+│   ├── middlewares
+│   ├── repositories
+│   ├── controllers
+│   ├── models
+│   ├── routes
+│   ├── services
+│   ├── utils
+│   ├── app.js
+│   └── server.js
+├── .gitignore
+├── .env.example
+├── package.json
+└── README.md
+```
+
+## Rutas disponibles
+
+Actualmente se encuentran disponibles las siguientes rutas:
+
+```bash
+# Endpoint de salud del servidor
+GET /api/health
+```
+
+```bash
+# USERS
+GET /api/users
+GET /api/users/:id
+POST /api/users
+```
+
+```bash
+# Tickets
+GET /api/tickets
+GET /api/tickets/:id
+POST /api/tickets
+```
+
+```bash
+# Events
+GET /api/events
+GET /api/events/:id
+POST /api/events
+```
+
+_Nota: Dado que la API aún se encuentra en desarrollo las unicas rutas funcionales son las de USERS, el resto devuelven un objeto placeholder._
+
+_Nota 2: Aún no está implementado el hasheo de la password para los users._
