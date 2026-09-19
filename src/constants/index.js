@@ -23,4 +23,4 @@ export const TICKET_STATUS = {
 	USED: 'used',
 };
 
-[(USER_ROLES, ENVIRONMENT, EVENT_STATUS, TICKET_STATUS)].forEach(Object.freeze);
+[USER_ROLES, ENVIRONMENT, EVENT_STATUS, TICKET_STATUS].forEach(Object.freeze);

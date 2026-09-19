@@ -28,4 +28,4 @@ const ticketSchema = new mongoose.Schema(
 ticketSchema.index({ event: 1, user: 1 });
 ticketSchema.index({ code: 1 });
 
-export default mongoose.model('Ticket', eventSchema);
+export default mongoose.model('Ticket', ticketSchema);
