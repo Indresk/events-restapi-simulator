@@ -29,11 +29,34 @@ class UserController {
 
 	static async create(req, res, next) {
 		try {
-			const { name, email, role, password } = req.body;
+			const { first_name, last_name, email, password } = req.body;
 
-			const user = await UserService.create({ name, email, role, password });
+			const user = await UserService.create({
+				first_name,
+				last_name,
+				email,
+				password,
+			});
 
 			res.status(201).json(successFormatter(user, 'Usuario creado con exito.'));
+		} catch (error) {
+			next(error);
+		}
+	}
+
+	static async updateRole(req, res, next) {
+		try {
+			const { id } = req.params;
+			const { role } = req.body;
+
+			const user = await UserService.updateRole({
+				id,
+				role,
+			});
+
+			res
+				.status(200)
+				.json(successFormatter(user, 'Usuario actualizado con exito.'));
 		} catch (error) {
 			next(error);
 		}

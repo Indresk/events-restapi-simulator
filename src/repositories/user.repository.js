@@ -12,15 +12,30 @@ class UserRepository {
 		return user;
 	}
 
-	static async create({ name, email, role, password }) {
+	static async getByEmail(email) {
+		const user = await User.findOne({ email });
+		return user;
+	}
+
+	static async create({ first_name, last_name, email, role, password }) {
 		const user = await User.create({
-			name,
+			first_name,
+			last_name,
 			email,
 			role: role || USER_ROLES.USER,
-			passwordHash: password,
+			password,
 		});
 
 		return user;
+	}
+
+	static async updateRole({ id, role }) {
+		const newUser = await User.findByIdAndUpdate(
+			id,
+			{ role },
+			{ returnDocument: 'after' },
+		);
+		return newUser;
 	}
 
 	static async insertMany(users) {

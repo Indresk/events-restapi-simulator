@@ -7,6 +7,7 @@ Este proyecto es una REST API desarrollada en Node.js utilizando Express y Mongo
 - Node.js
 - Express
 - Mongoose
+- Zod
 
 ## Instalación
 
@@ -99,6 +100,7 @@ GET /api/health
 GET /api/users
 GET /api/users/:id
 POST /api/users
+PATCH /api/users/:id
 ```
 
 ```bash
@@ -115,6 +117,44 @@ GET /api/events/:id
 POST /api/events
 ```
 
+```bash
+# Sessions
+POST /api/sessions/register
+```
+
 _Nota: Dado que la API aún se encuentra en desarrollo las unicas rutas funcionales son las de USERS, el resto devuelven un objeto placeholder._
 
 _Nota 2: Aún no está implementado el hasheo de la password para los users._
+
+## Registro de usuarios
+
+Se habilitó el endpoint `POST /api/sessions/register` para el registro de nuevos usuarios. A este endpoint se le debe enviar un objeto JSON con los siguientes campos:
+
+```json
+{
+	"first_name": "jon",
+	"last_name": "doe",
+	"email": "jondoe@test.com",
+	"password": "abcd.1234"
+}
+```
+
+Los campos email y password se encuentran bajo validación realizada con zod, por lo que si no cumplen con los requisitos de validación el endpoint devolverá un error acorde.
+
+Requisitos de email:
+
+- Debe tener un formato de email válido, con @ y dominio.
+
+_Nota: Zod realiza el retirado de espacios en blanco y ajusta todo el correo a lowercase antes de guardarlo en la base de datos._
+
+Requisitos de password:
+
+- Debe ser mayor a 8 caracteres.
+- Debe ser menor a 20 caracteres.
+- Debe tener al menos 8 caracteres.
+- Debe contener al menos una letra mayúscula.
+- Debe contener al menos una letra minúscula.
+- Debe contener al menos un número.
+- Debe contener al menos un carácter especial.
+
+La contraseña se encuentra hasheada con bcrypt antes de ser almacenada en la base de datos, por lo que no se almacena en texto plano y esta configurada para no devolverse en las respuestas de POST o PATCH de la entidad `Users`.
