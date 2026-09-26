@@ -1,0 +1,13 @@
+import AppError from '../errors/app.error.js';
+import ERROR_CODES from '../errors/error.codes.js';
+import { verifyToken } from '../utils/jwtHandler.js';
+
+export default function authMiddleware(req, res, next) {
+	const token = req.cookies.session;
+
+	if (token) throw new AppError(ERROR_CODES.NOT_AUTHENTICATED);
+	const decoded = verifyToken(token);
+	req.user = decoded;
+
+	next();
+}

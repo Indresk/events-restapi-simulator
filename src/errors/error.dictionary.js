@@ -30,4 +30,12 @@ export const errorsDictionary = {
 		statusCode: 400,
 		message: 'No se proporcionaron los datos necesarios para esa solicitud',
 	},
+	[ERROR_CODES.NOT_AUTHENTICATED]: {
+		statusCode: 401,
+		message: 'Solicitud no autenticada',
+	},
+	[ERROR_CODES.INVALID_TOKEN]: {
+		statusCode: 401,
+		message: 'Token invalido o expirado',
+	},
 };

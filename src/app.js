@@ -9,10 +9,12 @@ import usersRouter from './routes/users.route.js';
 import ticketsRouter from './routes/tickets.route.js';
 import eventsRouter from './routes/events.route.js';
 import sessionsRouter from './routes/sessions.route.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(httpLogger);
 
 app.get('/api/health', (req, res) => {

@@ -6,6 +6,8 @@ const ERROR_CODES = {
 	CONFIG_ERROR: 'config_error',
 	ROUTE_NOT_FOUND: 'route_not_found',
 	BAD_REQUEST: 'bad_request',
+	NOT_AUTHENTICATED: 'not_authenticated',
+	INVALID_TOKEN: 'invalid_token',
 };
 
 Object.freeze(ERROR_CODES);
