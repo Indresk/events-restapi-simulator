@@ -8,5 +8,5 @@ export const passwordSchema = z
 	.max(20)
 	.refine((val) => /[A-Z]/.test(val))
 	.refine((val) => /[a-z]/.test(val))
-	.refine((val) => /[0-1]/.test(val))
+	.refine((val) => /[0-9]/.test(val))
 	.refine((val) => /[^A-Za-z0-9]/.test(val));

@@ -1,11 +1,11 @@
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
 import AppError from '../errors/app.error.js';
-import ERROR_CODES from '../errors/error.codes';
+import ERROR_CODES from '../errors/error.codes.js';
 
 export function verifyToken(token) {
 	try {
-		const decoded = jwt.verify(token);
+		const decoded = jwt.verify(token, config.JWT_SECRET);
 		return decoded;
 	} catch (error) {
 		throw new AppError(ERROR_CODES.INVALID_TOKEN);
@@ -13,6 +13,8 @@ export function verifyToken(token) {
 }
 
 export function createToken(payload) {
-	const token = jwt.sign(payload, config.JWT_TOKEN);
+	const token = jwt.sign(payload, config.JWT_SECRET, {
+		expiresIn: config.JWT_EXPIRES_IN,
+	});
 	return token;
 }

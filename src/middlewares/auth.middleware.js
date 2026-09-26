@@ -1,6 +1,6 @@
 import AppError from '../errors/app.error.js';
 import ERROR_CODES from '../errors/error.codes.js';
-import { verifyToken } from '../utils/jwtHandler.js';
+import { verifyToken } from '../utils/jwt.js';
 
 export default function authMiddleware(req, res, next) {
 	const token = req.cookies.session;

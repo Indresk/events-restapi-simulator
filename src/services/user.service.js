@@ -4,7 +4,7 @@ import AppError from '../errors/app.error.js';
 import UserRepository from '../repositories/user.repository.js';
 import ERROR_CODES from '../errors/error.codes.js';
 import { emailSchema, passwordSchema } from '../utils/zodSchemas.js';
-import { createHash } from '../utils/hashing.js';
+import { createHash } from '../utils/hash.js';
 
 class UserService {
 	static async getAll() {

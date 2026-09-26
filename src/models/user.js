@@ -24,6 +24,12 @@ const userSchema = new mongoose.Schema(
 		},
 	},
 	{
+		toJSON: {
+			transform(_doc, ret) {
+				const { password, __v, ...rest } = ret;
+				return rest;
+			},
+		},
 		toObject: {
 			transform(_doc, ret) {
 				const { password, __v, ...rest } = ret;
