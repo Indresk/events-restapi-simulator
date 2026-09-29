@@ -23,28 +23,23 @@ class SessionService {
 
 		const userStatus = await UserRepository.getByEmail(email);
 
-		if (!userStatus) throw new AppError(ERROR_CODES.USER_NOT_FOUND);
+		if (!userStatus)
+			throw new AppError(ERROR_CODES.BAD_REQUEST, `Credenciales invalidas`);
 
-		const {
-			first_name,
-			last_name,
-			role,
-			password: hashedPassword,
-		} = userStatus;
+		const { id, role, password: hashedPassword } = userStatus;
 
 		if (!(await isValidPassword(password, hashedPassword)))
 			throw new AppError(ERROR_CODES.BAD_REQUEST, `Credenciales invalidas`);
 
 		const userPayload = {
-			first_name,
-			last_name,
+			id,
 			email,
 			role,
 		};
 
 		const token = createToken(userPayload);
 
-		return token;
+		return { token, userPayload };
 	}
 
 	static async current({ email, password }) {

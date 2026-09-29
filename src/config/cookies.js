@@ -1,6 +1,7 @@
 import { ENVIRONMENT } from '../constants/index.js';
 import config from './index.js';
 
+export const SESSION_NAME = 'currentUser';
 const MAX_AGE = 60 * 60 * 1000;
 
 export const sessionConfig = {

@@ -8,6 +8,10 @@ Este proyecto es una REST API desarrollada en Node.js utilizando Express y Mongo
 - Express
 - Mongoose
 - Zod
+- Bcrypt
+- JsonWebToken
+- Dotenv
+- Cookie-Parser
 
 ## Instalación
 
@@ -120,6 +124,9 @@ POST /api/events
 ```bash
 # Sessions
 POST /api/sessions/register
+POST /api/sessions/login
+POST /api/sessions/logout
+GET /api/sessions/current
 ```
 
 _Nota: Dado que la API aún se encuentra en desarrollo las unicas rutas funcionales son las de USERS, el resto devuelven un objeto placeholder._
@@ -158,3 +165,99 @@ Requisitos de password:
 - Debe contener al menos un carácter especial.
 
 La contraseña se encuentra hasheada con bcrypt antes de ser almacenada en la base de datos, por lo que no se almacena en texto plano y esta configurada para no devolverse en las respuestas de POST o PATCH de la entidad `Users`.
+
+## Sistema de login, logout y autorización con JWT
+
+Se implementó un sistema de login y logout con JWT, el cual almacena de manera segura en cookies el token de acceso y permite el acceso a rutas protegidas.
+
+Las rutas habilitadas en esta etapa fueron las siguientes con su respectivo input y output esperado:
+
+### Ruta de login
+
+```bash
+POST /api/sessions/login
+```
+
+Descripción: Esta ruta permite a un usuario autenticarse en el sistema. Se le debe enviar un objeto JSON con los campos `email` y `password`. Si las credenciales son correctas, se generará un token JWT y se enviará en una cookie y un JSON de respuesta.
+
+Body esperado:
+
+```json
+{
+	"email": "test@test.com",
+	"password": "abcd.efG23"
+}
+```
+
+Respuesta esperada:
+
+```json
+{
+	"status": "success",
+	"payload": {
+		"id": "6ab847dd1d5590dc49e2db59",
+		"email": "test@test.com",
+		"role": "user"
+	},
+	"message": "Login exitoso"
+}
+```
+
+Respuesta de error esperada:
+
+```json
+{
+	"status": "error",
+	"error": "bad_request",
+	"message": "Credenciales invalidas"
+}
+```
+
+### Ruta de logout
+
+```bash
+POST /api/sessions/logout
+```
+
+Descripción: Esta ruta permite a un usuario cerrar sesión en el sistema. Se le debe enviar una request vacía y se eliminará la cookie con el token JWT.
+
+Respuesta esperada:
+
+```json
+{
+	"status": "success",
+	"message": "Logout correcto"
+}
+```
+
+### Ruta de sesión actual
+
+```bash
+GET /api/sessions/current
+```
+
+Descripción: Esta ruta es el ejemplo de ruta protegida y permite a un usuario obtener la información de su sesión actual. Se le debe enviar una request vacía y se devolverá un JSON con la información del usuario autenticado.
+
+Respuesta esperada:
+
+```json
+{
+	"status": "success",
+	"payload": {
+		"id": "6ab847dd1d5590dc49e2db59",
+		"email": "test@test.com",
+		"role": "user"
+	},
+	"message": "Información de sesión obtenida correctamente."
+}
+```
+
+Respuesta de error esperada:
+
+```json
+{
+	"status": "error",
+	"error": "not_authenticated",
+	"message": "Solicitud no autenticada"
+}
+```

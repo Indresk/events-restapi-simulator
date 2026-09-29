@@ -1,4 +1,4 @@
-import { sessionConfig } from '../config/cookies.js';
+import { SESSION_NAME, sessionConfig } from '../config/cookies.js';
 import SessionService from '../services/session.service.js';
 import successFormatter from '../utils/successFormatter.js';
 
@@ -7,9 +7,11 @@ class SessionController {
 		try {
 			const { email, password } = req.body;
 
-			const token = await SessionService.logIn({ email, password });
-			res.cookie('session', token, sessionConfig);
-			res.status(200).json(successFormatter({ email }, 'Login exitoso'));
+			const loginData = await SessionService.logIn({ email, password });
+			res.cookie(SESSION_NAME, loginData.token, sessionConfig);
+			res
+				.status(200)
+				.json(successFormatter(loginData.userPayload, 'Login exitoso'));
 		} catch (error) {
 			next(error);
 		}
@@ -17,7 +19,7 @@ class SessionController {
 
 	static async logOut(req, res, next) {
 		try {
-			res.clearCookie('session');
+			res.clearCookie(SESSION_NAME);
 			res.status(200).json(successFormatter('', 'Logout correcto'));
 		} catch (error) {
 			next(error);
@@ -26,7 +28,15 @@ class SessionController {
 
 	static current(req, res) {
 		try {
-			res.status(200).json(successFormatter('', 'hola'));
+			const { id, email, role } = req.user;
+			res
+				.status(200)
+				.json(
+					successFormatter(
+						{ id, email, role },
+						'Información de sesión obtenida correctamente.',
+					),
+				);
 		} catch (error) {
 			next(error);
 		}

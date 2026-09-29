@@ -9,7 +9,7 @@ router.post('/register', UserController.create);
 router.post('/login', SessionController.logIn);
 router.post('/logout', SessionController.logOut);
 
-// router.use(authMiddleware);
+router.use(authMiddleware); // Rutas protegidas debajo
 
 router.get('/current', SessionController.current);
 
