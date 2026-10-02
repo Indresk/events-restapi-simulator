@@ -26,7 +26,7 @@ class SessionController {
 		}
 	}
 
-	static current(req, res) {
+	static current(req, res, next) {
 		try {
 			const { id, email, role } = req.user;
 			res

@@ -129,10 +129,6 @@ POST /api/sessions/logout
 GET /api/sessions/current
 ```
 
-_Nota: Dado que la API aún se encuentra en desarrollo las unicas rutas funcionales son las de USERS, el resto devuelven un objeto placeholder._
-
-_Nota 2: Aún no está implementado el hasheo de la password para los users._
-
 ## Registro de usuarios
 
 Se habilitó el endpoint `POST /api/sessions/register` para el registro de nuevos usuarios. A este endpoint se le debe enviar un objeto JSON con los siguientes campos:

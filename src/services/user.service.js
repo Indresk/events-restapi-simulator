@@ -58,24 +58,28 @@ class UserService {
 			);
 		}
 
-		if (!emailSchema.validate(email)) {
+		const validatedEmailData = emailSchema.safeParse(email);
+
+		if (!validatedEmailData.success) {
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
 				`El email proporcionado no es válido`,
 			);
 		}
 
-		const userStatus = await UserRepository.getByEmail(email);
+		const userStatus = await UserRepository.getByEmail(validatedEmailData.data);
+
+		const validatedPasswordData = passwordSchema.safeParse(password);
 
 		if (userStatus) throw new AppError(ERROR_CODES.USER_ALREADY_EXISTS);
 
-		if (!passwordSchema.validate(password))
+		if (!validatedPasswordData.success)
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
 				`La contraseña proporcionada no cumple las caracteristicas necesarias.`,
 			);
 
-		const passwordHashed = await createHash(password);
+		const passwordHashed = await createHash(validatedPasswordData.data);
 
 		const user = await UserRepository.create({
 			first_name,

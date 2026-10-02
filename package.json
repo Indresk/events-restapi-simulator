@@ -1,24 +1,8 @@
 {
 	"name": "events-restapi-simulator",
 	"version": "1.0.0",
-	"description": "",
+	"description": "Este proyecto es una REST API desarrollada en Node.js utilizando Express y MongoDB. Simula ser un API de gestion de eventos musicales.",
 	"main": "index.js",
-	"scripts": {
-		"start": "node ./src/server.js",
-		"dev": "node --watch ./src/server.js",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
-	"devEngines": {
-		"packageManager": {
-			"name": "pnpm",
-			"version": "11.16.0",
-			"onFail": "download"
-		}
-	},
-	"type": "module",
 	"dependencies": {
 		"bcrypt": "^6.0.0",
 		"cookie-parser": "^1.4.7",
@@ -26,6 +10,26 @@
 		"express": "^5.2.1",
 		"jsonwebtoken": "^9.0.3",
 		"mongoose": "^9.9.5",
+		"passport": "^0.7.0",
+		"passport-jwt": "^4.0.1",
+		"passport-local": "^1.0.0",
 		"zod": "^4.6.5"
-	}
+	},
+	"devDependencies": {},
+	"scripts": {
+		"start": "node ./src/server.js",
+		"dev": "node --watch ./src/server.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Indresk/events-restapi-simulator.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"type": "module",
+	"bugs": {
+		"url": "https://github.com/Indresk/events-restapi-simulator/issues"
+	},
+	"homepage": "https://github.com/Indresk/events-restapi-simulator#readme"
 }

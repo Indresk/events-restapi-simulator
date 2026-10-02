@@ -14,14 +14,16 @@ class SessionService {
 			);
 		}
 
-		if (!emailSchema.validate(email)) {
+		const validatedData = emailSchema.safeParse(email);
+
+		if (!validatedData.success) {
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
 				`El email proporcionado no es válido`,
 			);
 		}
 
-		const userStatus = await UserRepository.getByEmail(email);
+		const userStatus = await UserRepository.getByEmail(validatedData.data);
 
 		if (!userStatus)
 			throw new AppError(ERROR_CODES.BAD_REQUEST, `Credenciales invalidas`);
@@ -40,10 +42,6 @@ class SessionService {
 		const token = createToken(userPayload);
 
 		return { token, userPayload };
-	}
-
-	static async current({ email, password }) {
-		return `hola || ${email} + ${password}`;
 	}
 }
 

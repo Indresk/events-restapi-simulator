@@ -10,11 +10,13 @@ import ticketsRouter from './routes/tickets.route.js';
 import eventsRouter from './routes/events.route.js';
 import sessionsRouter from './routes/sessions.route.js';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
 
 const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(passport.initialize());
 app.use(httpLogger);
 
 app.get('/api/health', (req, res) => {
