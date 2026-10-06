@@ -34,6 +34,10 @@ export const errorsDictionary = {
 		statusCode: 401,
 		message: 'Solicitud no autenticada',
 	},
+	[ERROR_CODES.NOT_AUTHORIZED]: {
+		statusCode: 401,
+		message: 'No dispones de la autorización necesaria para esa solicitud',
+	},
 	[ERROR_CODES.INVALID_TOKEN]: {
 		statusCode: 401,
 		message: 'Token invalido o expirado',

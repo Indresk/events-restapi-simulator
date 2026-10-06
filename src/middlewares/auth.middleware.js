@@ -1,14 +1,11 @@
-import { SESSION_NAME } from '../config/cookies.js';
 import AppError from '../errors/app.error.js';
 import ERROR_CODES from '../errors/error.codes.js';
-import { verifyToken } from '../utils/jwt.js';
 
-export default function authMiddleware(req, res, next) {
-	const token = req.cookies[SESSION_NAME];
+export function authorizationMiddleware(...roles) {
+	return (req, res, next) => {
+		if (!roles.includes(req.user.role))
+			throw new AppError(ERROR_CODES.NOT_AUTHORIZED);
 
-	if (!token) throw new AppError(ERROR_CODES.NOT_AUTHENTICATED);
-	const decoded = verifyToken(token);
-	req.user = decoded;
-
-	next();
+		next();
+	};
 }

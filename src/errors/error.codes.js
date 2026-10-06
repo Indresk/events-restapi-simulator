@@ -7,6 +7,7 @@ const ERROR_CODES = {
 	ROUTE_NOT_FOUND: 'route_not_found',
 	BAD_REQUEST: 'bad_request',
 	NOT_AUTHENTICATED: 'not_authenticated',
+	NOT_AUTHORIZED: 'not_authorized',
 	INVALID_TOKEN: 'invalid_token',
 };
 

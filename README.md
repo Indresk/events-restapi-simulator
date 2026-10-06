@@ -164,7 +164,7 @@ La contraseña se encuentra hasheada con bcrypt antes de ser almacenada en la ba
 
 ## Sistema de login, logout y autorización con JWT
 
-Se implementó un sistema de login y logout con JWT, el cual almacena de manera segura en cookies el token de acceso y permite el acceso a rutas protegidas.
+Se implementó un sistema de login y logout con JWT y Passport.js, el cual almacena de manera segura en cookies el token de acceso y permite el acceso a rutas protegidas.
 
 Las rutas habilitadas en esta etapa fueron las siguientes con su respectivo input y output esperado:
 
@@ -256,4 +256,37 @@ Respuesta de error esperada:
 	"error": "not_authenticated",
 	"message": "Solicitud no autenticada"
 }
+```
+
+## Implementación de Passport.js
+
+Se implementó Passport.js para la autenticación de usuarios en el sistema. Se utilizó la estrategia `passport-local` para el login con email y password, y la estrategia `passport-jwt` para verificar la validez del token JWT.
+
+Las estrategias estan configuradas en el archivo `src/config/passport.js` y se utilizan en las rutas protegidas mediante el middleware `passport.authenticate('jwt', { session: false })`.
+
+Las estrategias actualmente habilitadas son las siguientes:
+
+```js
+'register' - Estrategia para registrar un nuevo usuario en el sistema.
+'login' - Estrategia para autenticar a un usuario en el sistema.
+'current' - Estrategia para obtener la información de la sesión actual del usuario autenticado.
+```
+
+Las rutas implementadas son las mismas declaradas en la sección anterior de login, logout y sesión actual, principalmente se migró la logica hacia Passport.js para un manejo más escalable y seguro de la autenticación de usuarios.
+
+Adicionalmente se creo un middleware de autorización para verificar los roles de los usuarios y permitir o denegar el acceso a ciertas rutas según el rol del usuario autenticado. Este middleware se encuentra en `src/middlewares/auth.middleware.js` y al momento se esta utilizando a modo de prueba en el endpoint `POST /api/users` para permitir crear usuarios solo a usuarios con rol `admin`.
+
+La implementaciónde este middleware se debe realizar de la siguiente manera en las rutas deseadas:
+
+```js
+router.post(
+	'/',
+	// Primero el middleware de autenticación con Passport.js para verificar el token JWT
+	passport.authenticate('current', {
+		session: false,
+	}),
+	// Luego el middleware de autorización para verificar el rol del usuario usando las constantes de roles definidas en `src/constants/index.js`
+	authorizationMiddleware(USER_ROLES.ADMIN),
+	Controller.method,
+);
 ```

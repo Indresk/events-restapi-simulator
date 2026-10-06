@@ -4,13 +4,14 @@ import {
 	notFoundHandler,
 } from './middlewares/error.middleware.js';
 import httpLogger from './middlewares/httpLogger.middleware.js';
+import passport from 'passport';
+import './config/passport.js';
 
 import usersRouter from './routes/users.route.js';
 import ticketsRouter from './routes/tickets.route.js';
 import eventsRouter from './routes/events.route.js';
 import sessionsRouter from './routes/sessions.route.js';
 import cookieParser from 'cookie-parser';
-import passport from 'passport';
 
 const app = express();
 

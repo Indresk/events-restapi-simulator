@@ -12,7 +12,7 @@ export function verifyToken(token) {
 	}
 }
 
-export function createToken(payload) {
+export function createToken({ ...payload }) {
 	const token = jwt.sign(payload, config.JWT_SECRET, {
 		expiresIn: config.JWT_EXPIRES_IN,
 	});

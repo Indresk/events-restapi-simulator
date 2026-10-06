@@ -50,6 +50,7 @@ class UserService {
 		return user;
 	}
 
+	// Logica de creación migrada a registro en config/passport.js
 	static async create({ first_name, last_name, email, password }) {
 		if (!first_name || !last_name || !email || !password) {
 			throw new AppError(

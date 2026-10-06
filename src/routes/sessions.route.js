@@ -1,19 +1,32 @@
 import express from 'express';
-import UserController from '../controllers/user.controller.js';
-import authMiddleware from '../middlewares/auth.middleware.js';
+import passport from 'passport';
 import SessionController from '../controllers/session.controller.js';
 const router = express.Router();
 
-router.post('/register', UserController.create);
+router.post(
+	'/register',
+	passport.authenticate('register', {
+		session: false,
+	}),
+	SessionController.register,
+);
 
-router.post('/login', SessionController.logIn);
+router.post(
+	'/login',
+	passport.authenticate('login', {
+		session: false,
+	}),
+	SessionController.logIn,
+);
+
 router.post('/logout', SessionController.logOut);
 
-router.use(authMiddleware); // Rutas protegidas debajo
-
-router.get('/current', SessionController.current);
+router.get(
+	'/current',
+	passport.authenticate('current', {
+		session: false,
+	}),
+	SessionController.current,
+);
 
 export default router;
-
-// router.post('/logout', authMiddleware, SessionController.logOut);
-// router.post('/current', authMiddleware, SessionController.current);
