@@ -31,7 +31,7 @@ export const errorsDictionary = {
 		message: 'No se proporcionaron los datos necesarios para esa solicitud',
 	},
 	[ERROR_CODES.NOT_AUTHENTICATED]: {
-		statusCode: 401,
+		statusCode: 403,
 		message: 'Solicitud no autenticada',
 	},
 	[ERROR_CODES.NOT_AUTHORIZED]: {
