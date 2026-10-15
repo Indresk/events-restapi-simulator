@@ -5,10 +5,12 @@ const ERROR_CODES = {
 	INTERNAL_SERVER_ERROR: 'internal_server_error',
 	CONFIG_ERROR: 'config_error',
 	ROUTE_NOT_FOUND: 'route_not_found',
+	NOT_FOUND: 'not_found',
 	BAD_REQUEST: 'bad_request',
 	NOT_AUTHENTICATED: 'not_authenticated',
 	NOT_AUTHORIZED: 'not_authorized',
 	INVALID_TOKEN: 'invalid_token',
+	EVENT_FULLFILLED: 'event_fullfilled',
 };
 
 Object.freeze(ERROR_CODES);

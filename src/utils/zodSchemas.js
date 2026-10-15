@@ -10,3 +10,4 @@ export const passwordSchema = z
 	.refine((val) => /[a-z]/.test(val))
 	.refine((val) => /[0-9]/.test(val))
 	.refine((val) => /[^A-Za-z0-9]/.test(val));
+export const dateSchema = z.coerce.date().min(new Date());

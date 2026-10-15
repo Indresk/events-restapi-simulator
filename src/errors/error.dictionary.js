@@ -13,7 +13,6 @@ export const errorsDictionary = {
 		statusCode: 400,
 		message: 'El rol de usuario no es válido',
 	},
-
 	[ERROR_CODES.INTERNAL_SERVER_ERROR]: {
 		statusCode: 500,
 		message: 'Error interno del servidor',
@@ -25,6 +24,10 @@ export const errorsDictionary = {
 	[ERROR_CODES.ROUTE_NOT_FOUND]: {
 		statusCode: 404,
 		message: 'No se encontró la ruta solicitada',
+	},
+	[ERROR_CODES.NOT_FOUND]: {
+		statusCode: 404,
+		message: 'No se encontró el recurso solicitado',
 	},
 	[ERROR_CODES.BAD_REQUEST]: {
 		statusCode: 400,
@@ -41,5 +44,9 @@ export const errorsDictionary = {
 	[ERROR_CODES.INVALID_TOKEN]: {
 		statusCode: 401,
 		message: 'Token invalido o expirado',
+	},
+	[ERROR_CODES.EVENT_FULLFILLED]: {
+		statusCode: 409,
+		message: 'No se puede procesar porque el evento se canceló o se completó',
 	},
 };
