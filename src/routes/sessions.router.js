@@ -1,6 +1,8 @@
 import express from 'express';
 import passport from 'passport';
 import SessionController from '../controllers/session.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+
 const router = express.Router();
 
 router.post(
@@ -21,12 +23,7 @@ router.post(
 
 router.post('/logout', SessionController.logOut);
 
-router.get(
-	'/current',
-	passport.authenticate('current', {
-		session: false,
-	}),
-	SessionController.current,
-);
+// Solo usuarios autenticados
+router.get('/current', authenticate, SessionController.current);
 
 export default router;

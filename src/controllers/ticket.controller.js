@@ -1,4 +1,4 @@
-import TicketService from '../services/event.service.js';
+import TicketService from '../services/ticket.service.js';
 import successFormatter from '../utils/successFormatter.js';
 
 class TicketController {

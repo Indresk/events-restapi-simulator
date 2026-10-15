@@ -18,7 +18,8 @@
 	"devDependencies": {},
 	"scripts": {
 		"start": "node ./src/server.js",
-		"dev": "node --watch ./src/server.js"
+		"dev": "node --watch ./src/server.js",
+		"seed:admin": "node ./src/scripts/seedAdmin.js"
 	},
 	"repository": {
 		"type": "git",

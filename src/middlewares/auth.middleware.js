@@ -1,25 +1,25 @@
+import passport from 'passport';
 import AppError from '../errors/app.error.js';
 import ERROR_CODES from '../errors/error.codes.js';
-import EventService from '../services/event.service.js';
 
-export function authorizationMiddleware(...roles) {
-	return (req, res, next) => {
-		if (!roles.includes(req.user.role))
-			throw new AppError(ERROR_CODES.NOT_AUTHORIZED);
+const TOKEN_ERRORS = [
+	'JsonWebTokenError',
+	'TokenExpiredError',
+	'NotBeforeError',
+];
 
+export function authenticate(req, res, next) {
+	passport.authenticate('current', { session: false }, (err, user, info) => {
+		if (err) return next(err);
+
+		if (!user) {
+			const code = TOKEN_ERRORS.includes(info?.name)
+				? ERROR_CODES.INVALID_TOKEN
+				: ERROR_CODES.NOT_AUTHENTICATED;
+			return next(new AppError(code));
+		}
+
+		req.user = user;
 		next();
-	};
+	})(req, res, next);
 }
-
-export const authorizeEventOwnerOrAdmin = async (req, res, next) => {
-	const { id } = req.params;
-	const event = await EventService.getById(id);
-	if (!event) throw new AppError(ERROR_CODES.NOT_FOUND);
-
-	const isAdmin = req.user.role === 'admin';
-	const isOwner = event.organizer.toString() === req.user._id.toString();
-	if (!isAdmin && !isOwner) throw new AppError(ERROR_CODES.NOT_AUTHORIZED);
-
-	req.event = event;
-	next();
-};

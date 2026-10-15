@@ -4,9 +4,11 @@ import successFormatter from '../utils/successFormatter.js';
 class EventController {
 	static async getAll(req, res, next) {
 		try {
-			const payload = await EventService.getAll();
+			const payload = await EventService.getAllPublished();
 
-			res.status(200).json(successFormatter(payload, 'obtenidos con exito.'));
+			res
+				.status(200)
+				.json(successFormatter(payload, 'Eventos obtenidos con exito.'));
 		} catch (error) {
 			next(error);
 		}
@@ -15,9 +17,11 @@ class EventController {
 	static async getById(req, res, next) {
 		try {
 			const { id } = req.params;
-			const payload = await EventService.getById(id);
+			const payload = await EventService.getPublishedById(id);
 
-			res.status(200).json(successFormatter(payload, 'obtenido con exito.'));
+			res
+				.status(200)
+				.json(successFormatter(payload, 'Evento obtenido con exito.'));
 		} catch (error) {
 			next(error);
 		}
@@ -27,20 +31,21 @@ class EventController {
 		try {
 			const {
 				title,
+				description,
 				location,
 				startDate,
 				endDate,
-				organizer,
 				capacity = null,
 				price,
 			} = req.body;
 
 			const payload = await EventService.create({
 				title,
+				description,
 				location,
 				startDate,
 				endDate,
-				organizer,
+				organizer: req.user._id,
 				capacity,
 				price,
 			});
@@ -53,29 +58,27 @@ class EventController {
 		}
 	}
 
-	static async updateStatus(req, res, next) {
+	static async update(req, res, next) {
 		try {
 			const { id } = req.params;
-			const { status } = req.body;
-			const payload = await EventService.updateStatus({ id, status });
+			const payload = await EventService.update(id, req.body);
 
 			res
 				.status(200)
-				.json(successFormatter(payload, 'Status actualizado con exito.'));
+				.json(successFormatter(payload, 'Evento actualizado con exito.'));
 		} catch (error) {
 			next(error);
 		}
 	}
 
-	static async addNewTickets(req, res, next) {
+	static async cancel(req, res, next) {
 		try {
 			const { id } = req.params;
-			const { ticketsSold } = req.body;
-			const payload = await EventService.addNewTickets({ id, ticketsSold });
+			const payload = await EventService.cancel(id);
 
 			res
 				.status(200)
-				.json(successFormatter(payload, 'Tickets actualizados con exito.'));
+				.json(successFormatter(payload, 'Evento cancelado con exito.'));
 		} catch (error) {
 			next(error);
 		}

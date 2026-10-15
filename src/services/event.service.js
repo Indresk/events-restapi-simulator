@@ -2,29 +2,43 @@ import mongoose from 'mongoose';
 import AppError from '../errors/app.error.js';
 import EventRepository from '../repositories/event.repository.js';
 import ERROR_CODES from '../errors/error.codes.js';
-import { dateSchema } from '../utils/zodSchemas.js';
-import UserService from './user.service.js';
-import { EVENT_STATUS, USER_ROLES } from '../constants/index.js';
+import { dateSchema, eventUpdateSchema } from '../utils/zodSchemas.js';
+import { EVENT_STATUS } from '../constants/index.js';
+
+const CLOSED_STATUSES = [EVENT_STATUS.CANCELLED, EVENT_STATUS.COMPLETED];
+
+function validateId(id) {
+	if (!id)
+		throw new AppError(ERROR_CODES.BAD_REQUEST, 'Falta el id del evento');
+
+	if (!mongoose.isValidObjectId(id))
+		throw new AppError(
+			ERROR_CODES.BAD_REQUEST,
+			`El id proporcionado no es válido`,
+		);
+}
 
 class EventService {
-	static async getAll() {
-		const events = await EventRepository.getAll();
+	static async getAllPublished() {
+		const events = await EventRepository.getAll({
+			status: EVENT_STATUS.PUBLISHED,
+		});
 		return events;
 	}
 
-	static async getById(id) {
-		if (!id)
-			throw new AppError(
-				ERROR_CODES.BAD_REQUEST,
-				'Falta id del usuario a buscar',
-			);
+	static async getPublishedById(id) {
+		validateId(id);
 
-		if (!mongoose.isValidObjectId(id)) {
-			throw new AppError(
-				ERROR_CODES.BAD_REQUEST,
-				`El id proporcionado no es válido`,
-			);
-		}
+		const event = await EventRepository.getOne({
+			_id: id,
+			status: EVENT_STATUS.PUBLISHED,
+		});
+		if (!event) throw new AppError(ERROR_CODES.NOT_FOUND);
+		return event;
+	}
+
+	static async getById(id) {
+		validateId(id);
 
 		const event = await EventRepository.getById(id);
 		if (!event) throw new AppError(ERROR_CODES.NOT_FOUND);
@@ -33,6 +47,7 @@ class EventService {
 
 	static async create({
 		title,
+		description,
 		location,
 		startDate,
 		endDate,
@@ -40,10 +55,18 @@ class EventService {
 		capacity,
 		price,
 	}) {
-		if (!title || !location || !startDate || !endDate || !organizer || !price) {
+		if (
+			!title ||
+			!location ||
+			!startDate ||
+			!endDate ||
+			!organizer ||
+			price === undefined ||
+			price === null
+		) {
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
-				'Faltan datos requeridos del usuario',
+				'Faltan datos requeridos del evento',
 			);
 		}
 
@@ -57,26 +80,26 @@ class EventService {
 		const validatedStartDateData = dateSchema.safeParse(startDate);
 		const validatedEndDateData = dateSchema.safeParse(endDate);
 
-		if (!validatedStartDateData.success && !validatedEndDateData.success) {
+		if (!validatedStartDateData.success || !validatedEndDateData.success) {
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
 				`La fecha proporcionada no es válida`,
 			);
 		}
 
-		const organizerData = await UserService.getById(organizer);
-
-		if (![USER_ROLES.ADMIN, USER_ROLES.ORGANIZER].includes(organizerData.role))
+		if (validatedEndDateData.data < validatedStartDateData.data) {
 			throw new AppError(
-				ERROR_CODES.NOT_AUTHORIZED,
-				'El usuario pasado como organizador no posee los permisos necesarios para crear un evento',
+				ERROR_CODES.BAD_REQUEST,
+				'La fecha de fin no puede ser anterior a la de inicio',
 			);
+		}
 
 		const event = await EventRepository.create({
 			title,
+			description,
 			location,
-			startDate,
-			endDate,
+			startDate: validatedStartDateData.data,
+			endDate: validatedEndDateData.data,
 			organizer,
 			capacity,
 			price,
@@ -85,43 +108,74 @@ class EventService {
 		return event.toObject();
 	}
 
-	static async updateStatus({ id, status }) {
-		if (!id || !status) {
-			throw new AppError(ERROR_CODES.BAD_REQUEST, 'Faltan datos requeridos');
-		}
+	static async update(id, data) {
+		const event = await this.getById(id);
 
-		if (!mongoose.isValidObjectId(id)) {
+		if (CLOSED_STATUSES.includes(event.status))
+			throw new AppError(ERROR_CODES.EVENT_FULLFILLED);
+
+		const validated = eventUpdateSchema.safeParse(data ?? {});
+
+		if (!validated.success)
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
-				`El id proporcionado no es válido`,
+				'Los datos proporcionados para actualizar el evento no son válidos',
+				validated.error.issues,
 			);
-		}
 
-		if (!Object.values(EVENT_STATUS).includes(status))
+		const changes = Object.fromEntries(
+			Object.entries(validated.data).filter(([, value]) => value !== undefined),
+		);
+
+		if (Object.keys(changes).length === 0)
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
-				'Estatus proporcionado invalido para actualizar',
+				'No se proporcionaron campos para actualizar',
 			);
 
-		const event = await EventRepository.updateStatus({
-			id,
-			status,
-		});
+		const startDate = changes.startDate ?? event.startDate;
+		const endDate = changes.endDate ?? event.endDate;
 
-		return event.toObject();
+		if (endDate < startDate)
+			throw new AppError(
+				ERROR_CODES.BAD_REQUEST,
+				'La fecha de fin no puede ser anterior a la de inicio',
+			);
+
+		if (
+			changes.capacity !== undefined &&
+			changes.capacity !== null &&
+			changes.capacity < event.ticketsSold
+		)
+			throw new AppError(
+				ERROR_CODES.BAD_REQUEST,
+				'La capacidad no puede ser menor a los tickets ya vendidos',
+			);
+
+		const updated = await EventRepository.update(id, changes);
+		return updated.toObject();
 	}
 
+	static async cancel(id) {
+		const event = await this.getById(id);
+
+		if (CLOSED_STATUSES.includes(event.status))
+			throw new AppError(ERROR_CODES.EVENT_FULLFILLED);
+
+		const updated = await EventRepository.updateStatus({
+			id,
+			status: EVENT_STATUS.CANCELLED,
+		});
+		return updated.toObject();
+	}
+
+	// Para futura implementación- incrementa ticketsSold cuando un ticket pasa a paid
 	static async addNewTickets({ id, ticketsSold }) {
 		if (!id || !ticketsSold) {
 			throw new AppError(ERROR_CODES.BAD_REQUEST, 'Faltan datos requeridos');
 		}
 
-		if (!mongoose.isValidObjectId(id)) {
-			throw new AppError(
-				ERROR_CODES.BAD_REQUEST,
-				`El id proporcionado no es válido`,
-			);
-		}
+		validateId(id);
 
 		if (ticketsSold <= 0)
 			throw new AppError(
@@ -131,10 +185,7 @@ class EventService {
 
 		const EventToUpdate = await this.getById(id);
 
-		if (
-			EventToUpdate.status === EVENT_STATUS.CANCELLED ||
-			EventToUpdate.status === EVENT_STATUS.COMPLETED
-		)
+		if (CLOSED_STATUSES.includes(EventToUpdate.status))
 			throw new AppError(ERROR_CODES.EVENT_FULLFILLED);
 
 		const validatedEndDateData = dateSchema.safeParse(EventToUpdate.endDate);
@@ -145,17 +196,18 @@ class EventService {
 
 		const newTicketsSold = EventToUpdate.ticketsSold + ticketsSold;
 
-		if (!(EventToUpdate.capacity === null)) {
-			if (EventToUpdate.capacity <= newTicketsSold)
-				throw new AppError(
-					ERROR_CODES.BAD_REQUEST,
-					'La cantidad de tickets vendidos supera la capacidad del evento',
-				);
-		}
+		if (
+			EventToUpdate.capacity !== null &&
+			newTicketsSold > EventToUpdate.capacity
+		)
+			throw new AppError(
+				ERROR_CODES.BAD_REQUEST,
+				'La cantidad de tickets vendidos supera la capacidad del evento',
+			);
 
-		const event = await EventRepository.updateStatus({
+		const event = await EventRepository.updateTikets({
 			id,
-			newTicketsSold,
+			ticketsSold: newTicketsSold,
 		});
 
 		return event.toObject();
@@ -165,5 +217,4 @@ class EventService {
 export default EventService;
 
 // Notas:
-// No permitir que un usuario edite eventos que no creó.
 // Incrementar ticketsSold en Event cuando un ticket pase a paid

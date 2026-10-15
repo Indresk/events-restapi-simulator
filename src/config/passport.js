@@ -8,6 +8,7 @@ import UserRepository from '../repositories/user.repository.js';
 import { Strategy as JwtStrategy } from 'passport-jwt';
 import { cookieExtractor } from './cookies.js';
 import config from './index.js';
+import { USER_ROLES } from '../constants/index.js';
 
 passport.use(
 	'register',
@@ -57,6 +58,7 @@ passport.use(
 					last_name,
 					email,
 					password: passwordHashed,
+					role: USER_ROLES.USER,
 				});
 
 				const newUser = user.toObject();
@@ -121,7 +123,7 @@ passport.use(
 		async (jwtPayload, done) => {
 			try {
 				const userData = await UserRepository.getById(jwtPayload.id);
-				if (!userData) throw new AppError(ERROR_CODES.USER_NOT_FOUND);
+				if (!userData || !userData.isActive) return done(null, false);
 				const user = userData.toObject();
 
 				return done(null, user);

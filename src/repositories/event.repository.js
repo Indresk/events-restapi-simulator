@@ -1,8 +1,8 @@
 import Event from '../models/event.js';
 
 class EventRepository {
-	static async getAll() {
-		const events = await Event.find();
+	static async getAll(filter = {}) {
+		const events = await Event.find(filter);
 		return events;
 	}
 
@@ -11,8 +11,14 @@ class EventRepository {
 		return event;
 	}
 
+	static async getOne(filter) {
+		const event = await Event.findOne(filter);
+		return event;
+	}
+
 	static async create({
 		title,
+		description,
 		location,
 		startDate,
 		endDate,
@@ -22,6 +28,7 @@ class EventRepository {
 	}) {
 		const event = await Event.create({
 			title,
+			description,
 			location,
 			startDate,
 			endDate,
@@ -31,6 +38,14 @@ class EventRepository {
 		});
 
 		return event;
+	}
+
+	static async update(id, data) {
+		const eventUpdated = await Event.findByIdAndUpdate(id, data, {
+			returnDocument: 'after',
+			runValidators: true,
+		});
+		return eventUpdated;
 	}
 
 	static async updateStatus({ id, status }) {

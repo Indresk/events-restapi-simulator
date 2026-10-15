@@ -50,14 +50,22 @@ class UserService {
 		return user;
 	}
 
-	// Logica de creación migrada a registro en config/passport.js
-	static async create({ first_name, last_name, email, password }) {
+	static async create({
+		first_name,
+		last_name,
+		email,
+		password,
+		role = USER_ROLES.USER,
+	}) {
 		if (!first_name || !last_name || !email || !password) {
 			throw new AppError(
 				ERROR_CODES.BAD_REQUEST,
 				'Faltan datos requeridos del usuario',
 			);
 		}
+
+		if (!Object.values(USER_ROLES).includes(role))
+			throw new AppError(ERROR_CODES.INVALID_USER_ROLE);
 
 		const validatedEmailData = emailSchema.safeParse(email);
 
@@ -85,8 +93,9 @@ class UserService {
 		const user = await UserRepository.create({
 			first_name,
 			last_name,
-			email,
+			email: validatedEmailData.data,
 			password: passwordHashed,
+			role,
 		});
 
 		return user.toObject();
@@ -112,6 +121,7 @@ class UserService {
 			id,
 			role,
 		});
+		if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND);
 
 		return user.toObject();
 	}

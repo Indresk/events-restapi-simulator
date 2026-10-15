@@ -27,10 +27,14 @@ Este proyecto es una REST API desarrollada en Node.js utilizando Express y Mongo
    ```bash
    npm install
    ```
+4. Crear el `.env` a partir de `.env.example` y crear el primer admin:
+   ```bash
+   npm run seed:admin
+   ```
 
 ## Configuración de variables de entorno
 
-Las variables de entorno necesarias se deben definir creando un archivo `.env` en la raíz del proyecto, debe seguir la estructura del archivo (`.env.example`)[./.env.example]. El proyecto está configurado para no arrancar si no encuentra las variables de entorno.
+Las variables de entorno necesarias se deben definir creando un archivo `.env` en la raíz del proyecto, debe seguir la estructura del archivo [`.env.example`](./.env.example). El proyecto está configurado para no arrancar si no encuentra las variables de entorno.
 
 ## Como ejecutar el servidor
 
@@ -49,132 +53,198 @@ _Nota: Para ejectar el servidor correctamente las variables de entorno deben est
 
 _Nota 2: El uso de los comandos `npm start` o `npm run dev` para inciar el servidor solo difiere en el estado watch de Node.js, con `npm start` este modo esta deshabilitado._
 
-## Roles y permisos
+## Roles
 
-Admin
+El modelo `User` tiene el campo `role` con los valores `user`, `organizer` y `admin`. El valor por defecto es `user`.
 
-- El administrador tendrá permisos generales sobre el sistema.
-- Podrá gestionar usuarios, categorías, eventos e inscripciones.
+- **user:** asistente. Consulta eventos publicados y reserva tickets.
+- **organizer:** crea eventos y administra solo los suyos.
+- **admin:** permisos generales. Gestiona usuarios y puede modificar cualquier evento.
 
-Organizer
+El registro público (`POST /api/sessions/register`) siempre crea usuarios con rol `user`. Si el body incluye `role`, se ignora. Los roles `organizer` y `admin` solo los asigna un admin desde las rutas de usuarios.
 
-- El organizador será quien crea y administra eventos.
-- Representa a una organización.
+### Primer admin
 
-User
-
-- El usuario común podrá consultar eventos y reservar tickets.
-- Representa a un asistente.
-
-## Estructura de carpetas
+Como nadie puede registrarse como admin, el primero se crea con un script. Usa las variables `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME` y `ADMIN_LAST_NAME` del `.env`:
 
 ```bash
-├── src
-│   ├── config
-│   ├── constants
-│   ├── dao
-│   ├── dto
-│   ├── errors
-│   ├── middlewares
-│   ├── repositories
-│   ├── controllers
-│   ├── models
-│   ├── routes
-│   ├── services
-│   ├── utils
-│   ├── app.js
-│   └── server.js
-├── .gitignore
-├── .env.example
-├── package.json
-└── README.md
+npm run seed:admin
+```
+
+Si el email ya existe, el script promueve ese usuario a admin.
+
+## Matriz de permisos
+
+| Acción                             | user | organizer | admin |
+| ---------------------------------- | :--: | :-------: | :---: |
+| Consultar eventos publicados       |  ✅  |    ✅     |  ✅   |
+| Crear eventos                      |  ❌  |    ✅     |  ✅   |
+| Modificar/cancelar eventos propios |  ❌  |    ✅     |  ✅   |
+| Modificar cualquier evento         |  ❌  |    ❌     |  ✅   |
+| Ver todos los usuarios             |  ❌  |    ❌     |  ✅   |
+| Crear usuarios y cambiar roles     |  ❌  |    ❌     |  ✅   |
+
+La matriz está definida en código en `src/constants/permissions.js`. Las rutas la consumen a través del middleware de autorización, así que ningún router escribe roles a mano:
+
+```js
+export const PERMISSIONS = {
+	EVENTS_READ_PUBLISHED: [USER, ORGANIZER, ADMIN],
+	EVENTS_CREATE: [ORGANIZER, ADMIN],
+	EVENTS_UPDATE_OWN: [ORGANIZER, ADMIN],
+	EVENTS_UPDATE_ANY: [ADMIN],
+	USERS_READ_ALL: [ADMIN],
+	USERS_MANAGE: [ADMIN],
+};
+```
+
+## Middlewares de autenticación y autorización
+
+Los middlewares están separados del código de rutas y se reutilizan en todos los routers.
+
+- **`authenticate`** (`src/middlewares/auth.middleware.js`): lee el JWT de la cookie `currentUser` con la estrategia `current` de Passport. Si es válido, carga el usuario desde la base y lo deja en `req.user`. Si no hay cookie, el token es inválido o expiró, o el usuario ya no existe o está inactivo, responde **401**.
+- **`authorize(...roles)`** (`src/middlewares/authorize.middleware.js`): recibe los roles permitidos y los compara con `req.user.role`. Si el rol no está incluido, responde **403**.
+- **`authorizeEventOwnerOrAdmin`** (`src/middlewares/authorize.middleware.js`): valida la propiedad del recurso. Un organizer solo pasa si es el `organizer` del evento. Un admin pasa siempre. En otro caso responde **403**.
+
+El rol se lee de la base en cada request, no del token. Un cambio de rol aplica de inmediato, sin volver a hacer login.
+
+Uso en una ruta:
+
+```js
+router.post(
+	'/',
+	authenticate, // 401 si no hay sesión
+	authorize(...PERMISSIONS.EVENTS_CREATE), // 403 si el rol no tiene permiso
+	EventController.create,
+);
 ```
 
 ## Rutas disponibles
 
-Actualmente se encuentran disponibles las siguientes rutas:
+Acceso: **público** no requiere sesión. **auth** requiere cualquier sesión válida. El resto indica los roles permitidos.
 
 ```bash
-# Endpoint de salud del servidor
-GET /api/health
-```
-
-```bash
-# USERS
-GET /api/users
-GET /api/users/:id
-POST /api/users
-PATCH /api/users/:id
-```
-
-```bash
-# Tickets
-GET /api/tickets
-GET /api/tickets/:id
-POST /api/tickets
-```
-
-```bash
-# Events
-GET /api/events
-GET /api/events/:id
-POST /api/events
+# Salud del servidor
+GET    /api/health                  # público
 ```
 
 ```bash
 # Sessions
-POST /api/sessions/register
-POST /api/sessions/login
-POST /api/sessions/logout
-GET /api/sessions/current
+POST   /api/sessions/register       # público (siempre crea rol user)
+POST   /api/sessions/login          # público
+POST   /api/sessions/logout         # público
+GET    /api/sessions/current        # auth
+```
+
+```bash
+# Events
+GET    /api/events                  # público, solo eventos published
+GET    /api/events/:id              # público, solo eventos published
+POST   /api/events                  # organizer, admin
+PATCH  /api/events/:id              # organizer dueño, admin
+PATCH  /api/events/:id/cancel       # organizer dueño, admin
+```
+
+```bash
+# Users (rutas administrativas)
+GET    /api/users                   # admin
+GET    /api/users/:id               # admin
+POST   /api/users                   # admin (puede indicar role)
+PATCH  /api/users/:id               # admin (cambia el role)
+```
+
+```bash
+# Tickets (placeholder, sin lógica aún)
+GET    /api/tickets
+GET    /api/tickets/:id
+POST   /api/tickets
+```
+
+### Eventos
+
+Para crear un nuevo evento se debe apuntar al endpoint `POST /api/events` y enviar en el body la siguiente estructura estando ya logeado desde la ruta `POST /api/sessions/login`:
+
+```json
+{
+	"title": "Concierto de folclor",
+	"description": "Bailemos juntos",
+	"location": "Irlanda",
+	"startDate": "2027-01-01T20:00:00.000Z",
+	"endDate": "2027-01-02T02:00:00.000Z",
+	"capacity": 500,
+	"price": 100
+}
+```
+
+Respuesta esperada `201`:
+
+```json
+{
+	"status": "success",
+	"payload": {
+		"_id": "6ad0849f3f458ea59d3731c3",
+		"title": "Concierto de folclor",
+		"organizer": "6ad0849f3f458ea59d3731c1",
+		"status": "draft",
+		"ticketsSold": 0
+	},
+	"message": "Evento creado con exito."
+}
+```
+
+_Nota: Se pueden editar los eventos desde el endpoint `PATCH /api/events/:id` acepta cualquier combinación de `title`, `description`, `location`, `startDate`, `endDate`, `capacity`, `price` y `status`. Para publicar un evento se envía `{ "status": "published" }`. Los campos `organizer` y `ticketsSold` no se pueden editar._
+
+_Nota 2: `PATCH /api/events/:id/cancel` pasa el evento a `cancelled`. Un evento cancelado o completado ya no se puede modificar y responde `409`._
+
+Si un organizer intenta modificar o cancelar un evento de otro organizer, recibe `403`:
+
+```json
+{
+	"status": "error",
+	"error": "not_authorized",
+	"message": "Solo el organizador del evento o un admin pueden modificarlo"
+}
 ```
 
 ## Registro de usuarios
 
-Se habilitó el endpoint `POST /api/sessions/register` para el registro de nuevos usuarios. A este endpoint se le debe enviar un objeto JSON con los siguientes campos:
+El endpoint `POST /api/sessions/register` registra nuevos usuarios con rol `user`. Recibe un JSON con estos campos:
 
 ```json
 {
 	"first_name": "jon",
 	"last_name": "doe",
 	"email": "jondoe@test.com",
-	"password": "abcd.1234"
+	"password": "Abcd.1234"
 }
 ```
 
-Los campos email y password se encuentran bajo validación realizada con zod, por lo que si no cumplen con los requisitos de validación el endpoint devolverá un error acorde.
+Los campos email y password se validan con zod. Si no cumplen los requisitos, el endpoint devuelve un error `400`.
 
 Requisitos de email:
 
 - Debe tener un formato de email válido, con @ y dominio.
 
-_Nota: Zod realiza el retirado de espacios en blanco y ajusta todo el correo a lowercase antes de guardarlo en la base de datos._
+_Nota: Zod quita los espacios en blanco y pasa el correo a minúsculas antes de guardarlo en la base de datos._
 
 Requisitos de password:
 
-- Debe ser mayor a 8 caracteres.
-- Debe ser menor a 20 caracteres.
-- Debe tener al menos 8 caracteres.
+- Debe tener entre 8 y 20 caracteres.
 - Debe contener al menos una letra mayúscula.
 - Debe contener al menos una letra minúscula.
 - Debe contener al menos un número.
 - Debe contener al menos un carácter especial.
 
-La contraseña se encuentra hasheada con bcrypt antes de ser almacenada en la base de datos, por lo que no se almacena en texto plano y esta configurada para no devolverse en las respuestas de POST o PATCH de la entidad `Users`.
+La contraseña se hashea con bcrypt antes de guardarse, por lo que nunca se almacena en texto plano.
 
-## Sistema de login, logout y autorización con JWT
+## Login, logout y sesión con JWT
 
-Se implementó un sistema de login y logout con JWT y Passport.js, el cual almacena de manera segura en cookies el token de acceso y permite el acceso a rutas protegidas.
+El login genera un JWT y lo guarda en la cookie `httpOnly` `currentUser`. Las rutas protegidas leen el token desde esa cookie.
 
-Las rutas habilitadas en esta etapa fueron las siguientes con su respectivo input y output esperado:
-
-### Ruta de login
+### Login
 
 ```bash
 POST /api/sessions/login
 ```
-
-Descripción: Esta ruta permite a un usuario autenticarse en el sistema. Se le debe enviar un objeto JSON con los campos `email` y `password`. Si las credenciales son correctas, se generará un token JWT y se enviará en una cookie y un JSON de respuesta.
 
 Body esperado:
 
@@ -192,6 +262,8 @@ Respuesta esperada:
 	"status": "success",
 	"payload": {
 		"id": "6ab847dd1d5590dc49e2db59",
+		"first_name": "jon",
+		"last_name": "doe",
 		"email": "test@test.com",
 		"role": "user"
 	},
@@ -209,15 +281,13 @@ Respuesta de error esperada:
 }
 ```
 
-### Ruta de logout
+### Logout
 
 ```bash
 POST /api/sessions/logout
 ```
 
-Descripción: Esta ruta permite a un usuario cerrar sesión en el sistema. Se le debe enviar una request vacía y se eliminará la cookie con el token JWT.
-
-Respuesta esperada:
+Elimina la cookie con el token JWT.
 
 ```json
 {
@@ -226,15 +296,13 @@ Respuesta esperada:
 }
 ```
 
-### Ruta de sesión actual
+### Sesión actual
 
 ```bash
 GET /api/sessions/current
 ```
 
-Descripción: Esta ruta es el ejemplo de ruta protegida y permite a un usuario obtener la información de su sesión actual. Se le debe enviar una request vacía y se devolverá un JSON con la información del usuario autenticado.
-
-Respuesta esperada:
+Requiere sesión. Devuelve los datos del usuario autenticado:
 
 ```json
 {
@@ -248,45 +316,41 @@ Respuesta esperada:
 }
 ```
 
-Respuesta de error esperada:
+Sin sesión responde `401` con `not_authenticated`. Con un token inválido o expirado responde `401` con `invalid_token`.
 
-```json
-{
-	"status": "error",
-	"error": "not_authenticated",
-	"message": "Solicitud no autenticada"
-}
-```
+## Passport.js
 
-## Implementación de Passport.js
-
-Se implementó Passport.js para la autenticación de usuarios en el sistema. Se utilizó la estrategia `passport-local` para el login con email y password, y la estrategia `passport-jwt` para verificar la validez del token JWT.
-
-Las estrategias estan configuradas en el archivo `src/config/passport.js` y se utilizan en las rutas protegidas mediante el middleware `passport.authenticate('jwt', { session: false })`.
-
-Las estrategias actualmente habilitadas son las siguientes:
+Las estrategias están configuradas en `src/config/passport.js`:
 
 ```js
-'register' - Estrategia para registrar un nuevo usuario en el sistema.
-'login' - Estrategia para autenticar a un usuario en el sistema.
-'current' - Estrategia para obtener la información de la sesión actual del usuario autenticado.
+'register' - passport-local. Registra un nuevo usuario con rol user.
+'login'    - passport-local. Autentica con email y password.
+'current'  - passport-jwt. Valida el JWT de la cookie y carga el usuario.
 ```
 
-Las rutas implementadas son las mismas declaradas en la sección anterior de login, logout y sesión actual, principalmente se migró la logica hacia Passport.js para un manejo más escalable y seguro de la autenticación de usuarios.
+La estrategia `current` no se usa directamente en las rutas. Se usa a través del middleware `authenticate`, que convierte cualquier fallo en una respuesta JSON `401`.
 
-Adicionalmente se creo un middleware de autorización para verificar los roles de los usuarios y permitir o denegar el acceso a ciertas rutas según el rol del usuario autenticado. Este middleware se encuentra en `src/middlewares/auth.middleware.js` y al momento se esta utilizando a modo de prueba en el endpoint `POST /api/users` para permitir crear usuarios solo a usuarios con rol `admin`.
+## Estructura de carpetas
 
-La implementaciónde este middleware se debe realizar de la siguiente manera en las rutas deseadas:
-
-```js
-router.post(
-	'/',
-	// Primero el middleware de autenticación con Passport.js para verificar el token JWT
-	passport.authenticate('current', {
-		session: false,
-	}),
-	// Luego el middleware de autorización para verificar el rol del usuario usando las constantes de roles definidas en `src/constants/index.js`
-	authorizationMiddleware(USER_ROLES.ADMIN),
-	Controller.method,
-);
+```bash
+├── src
+│   ├── config
+│   ├── constants
+│   ├── controllers
+│   ├── dao
+│   ├── dto
+│   ├── errors
+│   ├── middlewares
+│   ├── models
+│   ├── repositories
+│   ├── routes
+│   ├── scripts
+│   ├── services
+│   ├── utils
+│   ├── app.js
+│   └── server.js
+├── .gitignore
+├── .env.example
+├── package.json
+└── README.md
 ```

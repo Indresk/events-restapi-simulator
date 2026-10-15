@@ -1,10 +1,13 @@
 import UserService from '../services/user.service.js';
 import successFormatter from '../utils/successFormatter.js';
+import { UserDTO } from '../dto/index.js';
 
 class UserController {
 	static async getAll(req, res, next) {
 		try {
-			const users = await UserService.getAll();
+			const users = (await UserService.getAll()).map(
+				(user) => new UserDTO(user),
+			);
 
 			res
 				.status(200)
@@ -17,7 +20,7 @@ class UserController {
 	static async getById(req, res, next) {
 		try {
 			const { id } = req.params;
-			const user = await UserService.getById(id);
+			const user = new UserDTO(await UserService.getById(id));
 
 			res
 				.status(200)
@@ -28,15 +31,19 @@ class UserController {
 	}
 
 	static async create(req, res, next) {
+		// solo el admin puede entrar a este controller
 		try {
-			const { first_name, last_name, email, password } = req.body;
+			const { first_name, last_name, email, password, role } = req.body;
 
-			const user = await UserService.create({
-				first_name,
-				last_name,
-				email,
-				password,
-			});
+			const user = new UserDTO(
+				await UserService.create({
+					first_name,
+					last_name,
+					email,
+					password,
+					role,
+				}),
+			);
 
 			res.status(201).json(successFormatter(user, 'Usuario creado con exito.'));
 		} catch (error) {
@@ -49,10 +56,12 @@ class UserController {
 			const { id } = req.params;
 			const { role } = req.body;
 
-			const user = await UserService.updateRole({
-				id,
-				role,
-			});
+			const user = new UserDTO(
+				await UserService.updateRole({
+					id,
+					role,
+				}),
+			);
 
 			res
 				.status(200)
