@@ -11,6 +11,10 @@ const ERROR_CODES = {
 	NOT_AUTHORIZED: 'not_authorized',
 	INVALID_TOKEN: 'invalid_token',
 	EVENT_FULLFILLED: 'event_fullfilled',
+	EVENT_NOT_AVAILABLE: 'event_not_available',
+	EVENT_NO_CAPACITY: 'event_no_capacity',
+	TICKET_ALREADY_EXISTS: 'ticket_already_exists',
+	TICKET_ALREADY_CANCELLED: 'ticket_already_cancelled',
 };
 
 Object.freeze(ERROR_CODES);

@@ -13,14 +13,24 @@ export const EVENT_STATUS = {
 	DRAFT: 'draft',
 	PUBLISHED: 'published',
 	CANCELLED: 'cancelled',
-	COMPLETED: 'completed',
+	FINISHED: 'finished',
 };
 
 export const TICKET_STATUS = {
-	RESERVED: 'reserved',
-	PAID: 'paid',
+	CONFIRMED: 'confirmed',
+	PENDING: 'pending',
 	CANCELLED: 'cancelled',
-	USED: 'used',
 };
 
-[USER_ROLES, ENVIRONMENT, EVENT_STATUS, TICKET_STATUS].forEach(Object.freeze);
+export const ACTIVE_TICKET_STATUSES = [
+	TICKET_STATUS.CONFIRMED,
+	TICKET_STATUS.PENDING,
+];
+
+[
+	USER_ROLES,
+	ENVIRONMENT,
+	EVENT_STATUS,
+	TICKET_STATUS,
+	ACTIVE_TICKET_STATUSES,
+].forEach(Object.freeze);

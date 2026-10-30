@@ -9,6 +9,11 @@ const requiredEnvVars = [
 	'MONGO_URL',
 	'JWT_SECRET',
 	'JWT_EXPIRES_IN',
+	'MAIL_HOST',
+	'MAIL_PORT',
+	'MAIL_USER',
+	'MAIL_PASS',
+	'MAIL_FROM',
 ];
 
 for (const reqVar of requiredEnvVars) {

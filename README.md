@@ -12,6 +12,7 @@ Este proyecto es una REST API desarrollada en Node.js utilizando Express y Mongo
 - JsonWebToken
 - Dotenv
 - Cookie-Parser
+- Nodemailer
 
 ## Instalación
 
@@ -36,6 +37,18 @@ Este proyecto es una REST API desarrollada en Node.js utilizando Express y Mongo
 
 Las variables de entorno necesarias se deben definir creando un archivo `.env` en la raíz del proyecto, debe seguir la estructura del archivo [`.env.example`](./.env.example). El proyecto está configurado para no arrancar si no encuentra las variables de entorno.
 
+### Variables de email (Nodemailer)
+
+Las credenciales de correo se leen solo desde el `.env`, nunca están en el código. Todas son obligatorias:
+
+| Variable    | Descripción                                |
+| ----------- | ------------------------------------------ |
+| `MAIL_HOST` | Host del servidor SMTP                     |
+| `MAIL_PORT` | Puerto SMTP                                |
+| `MAIL_USER` | Usuario de la cuenta SMTP                  |
+| `MAIL_PASS` | Contraseña de la cuenta SMTP               |
+| `MAIL_FROM` | Remitente que verá el usuario en el correo |
+
 ## Como ejecutar el servidor
 
 El servidor se puede ejecutar usando los comandos declarados en el `package.json`:
@@ -57,7 +70,7 @@ _Nota 2: El uso de los comandos `npm start` o `npm run dev` para inciar el servi
 
 El modelo `User` tiene el campo `role` con los valores `user`, `organizer` y `admin`. El valor por defecto es `user`.
 
-- **user:** asistente. Consulta eventos publicados y reserva tickets.
+- **user:** asistente. Consulta eventos y se inscribe mediante tickets.
 - **organizer:** crea eventos y administra solo los suyos.
 - **admin:** permisos generales. Gestiona usuarios y puede modificar cualquier evento.
 
@@ -75,14 +88,20 @@ Si el email ya existe, el script promueve ese usuario a admin.
 
 ## Matriz de permisos
 
-| Acción                             | user | organizer | admin |
-| ---------------------------------- | :--: | :-------: | :---: |
-| Consultar eventos publicados       |  ✅  |    ✅     |  ✅   |
-| Crear eventos                      |  ❌  |    ✅     |  ✅   |
-| Modificar/cancelar eventos propios |  ❌  |    ✅     |  ✅   |
-| Modificar cualquier evento         |  ❌  |    ❌     |  ✅   |
-| Ver todos los usuarios             |  ❌  |    ❌     |  ✅   |
-| Crear usuarios y cambiar roles     |  ❌  |    ❌     |  ✅   |
+| Acción                                  | user | organizer | admin |
+| --------------------------------------- | :--: | :-------: | :---: |
+| Consultar eventos no `draft`            |  ✅  |    ✅     |  ✅   |
+| Consultar eventos `draft`               |  ❌  | solo propios |  ✅   |
+| Crear eventos                           |  ❌  |    ✅     |  ✅   |
+| Modificar/cambiar estado eventos propios |  ❌  |    ✅     |  ✅   |
+| Modificar cualquier evento              |  ❌  |    ❌     |  ✅   |
+| Inscribirse a un evento                 |  ✅  |    ✅     |  ✅   |
+| Ver y cancelar sus propios tickets      |  ✅  |    ✅     |  ✅   |
+| Ver tickets de un evento propio         |  ❌  |    ✅     |  ✅   |
+| Ver tickets de cualquier evento         |  ❌  |    ❌     |  ✅   |
+| Cancelar tickets ajenos                 |  ❌  |    ❌     |  ✅   |
+| Ver todos los usuarios                  |  ❌  |    ❌     |  ✅   |
+| Crear usuarios y cambiar roles          |  ❌  |    ❌     |  ✅   |
 
 La matriz está definida en código en `src/constants/permissions.js`. Las rutas la consumen a través del middleware de autorización, así que ningún router escribe roles a mano:
 
@@ -92,6 +111,8 @@ export const PERMISSIONS = {
 	EVENTS_CREATE: [ORGANIZER, ADMIN],
 	EVENTS_UPDATE_OWN: [ORGANIZER, ADMIN],
 	EVENTS_UPDATE_ANY: [ADMIN],
+	EVENTS_READ_TICKETS: [ORGANIZER, ADMIN],
+	TICKETS_MANAGE_ANY: [ADMIN],
 	USERS_READ_ALL: [ADMIN],
 	USERS_MANAGE: [ADMIN],
 };
@@ -103,7 +124,7 @@ Los middlewares están separados del código de rutas y se reutilizan en todos l
 
 - **`authenticate`** (`src/middlewares/auth.middleware.js`): lee el JWT de la cookie `currentUser` con la estrategia `current` de Passport. Si es válido, carga el usuario desde la base y lo deja en `req.user`. Si no hay cookie, el token es inválido o expiró, o el usuario ya no existe o está inactivo, responde **401**.
 - **`authorize(...roles)`** (`src/middlewares/authorize.middleware.js`): recibe los roles permitidos y los compara con `req.user.role`. Si el rol no está incluido, responde **403**.
-- **`authorizeEventOwnerOrAdmin`** (`src/middlewares/authorize.middleware.js`): valida la propiedad del recurso. Un organizer solo pasa si es el `organizer` del evento. Un admin pasa siempre. En otro caso responde **403**.
+- **`authorizeEventOwnerOrAdmin`** (`src/middlewares/authorize.middleware.js`): valida la propiedad del recurso. Un organizer solo pasa si es el `organizer` del evento (toma el id de `:eid` o `:id`). Un admin pasa siempre. En otro caso responde **403**.
 
 El rol se lee de la base en cada request, no del token. Un cambio de rol aplica de inmediato, sin volver a hacer login.
 
@@ -137,11 +158,11 @@ GET    /api/sessions/current        # auth
 
 ```bash
 # Events
-GET    /api/events                  # público, solo eventos published
-GET    /api/events/:id              # público, solo eventos published
+GET    /api/events                  # público, con filtros, paginación y orden
+GET    /api/events/:id              # público
 POST   /api/events                  # organizer, admin
-PATCH  /api/events/:id              # organizer dueño, admin
-PATCH  /api/events/:id/cancel       # organizer dueño, admin
+PUT    /api/events/:id              # organizer dueño, admin
+PATCH  /api/events/:id/status       # organizer dueño, admin
 ```
 
 ```bash
@@ -153,23 +174,26 @@ PATCH  /api/users/:id               # admin (cambia el role)
 ```
 
 ```bash
-# Tickets (placeholder, sin lógica aún)
-GET    /api/tickets
-GET    /api/tickets/:id
-POST   /api/tickets
+# Tickets
+POST   /api/events/:eid/tickets     # auth (inscripción)
+GET    /api/events/:eid/tickets     # organizer dueño del evento, admin
+GET    /api/tickets/my-tickets      # auth (solo los propios)
+PATCH  /api/tickets/:tid/cancel     # dueño del ticket, admin
 ```
 
 ### Eventos
 
-Para crear un nuevo evento se debe apuntar al endpoint `POST /api/events` y enviar en el body la siguiente estructura estando ya logeado desde la ruta `POST /api/sessions/login`:
+Modelo `Event`: `title`, `description`, `category`, `location` (obligatorios), `date`, `capacity` (entero > 0), `price` (≥ 0), `status` y `organizer` (referencia `ObjectId` al `User`, no un objeto embebido). Estados válidos: `draft` (por defecto), `published`, `cancelled`, `finished`.
+
+Para crear un evento se debe apuntar al endpoint `POST /api/events` estando logueado como `organizer` o `admin`:
 
 ```json
 {
-	"title": "Concierto de folclor",
+	"title": "Workshop de folclor",
 	"description": "Bailemos juntos",
+	"category": "workshop",
 	"location": "Irlanda",
-	"startDate": "2027-01-01T20:00:00.000Z",
-	"endDate": "2027-01-02T02:00:00.000Z",
+	"date": "2027-01-01T20:00:00.000Z",
 	"capacity": 500,
 	"price": 100
 }
@@ -182,28 +206,102 @@ Respuesta esperada `201`:
 	"status": "success",
 	"payload": {
 		"_id": "6ad0849f3f458ea59d3731c3",
-		"title": "Concierto de folclor",
+		"title": "Workshop de folclor",
 		"organizer": "6ad0849f3f458ea59d3731c1",
-		"status": "draft",
-		"ticketsSold": 0
+		"status": "draft"
 	},
 	"message": "Evento creado con exito."
 }
 ```
 
-_Nota: Se pueden editar los eventos desde el endpoint `PATCH /api/events/:id` acepta cualquier combinación de `title`, `description`, `location`, `startDate`, `endDate`, `capacity`, `price` y `status`. Para publicar un evento se envía `{ "status": "published" }`. Los campos `organizer` y `ticketsSold` no se pueden editar._
+`organizer` siempre se toma de `req.user`; si llega en el body se ignora.
 
-_Nota 2: `PATCH /api/events/:id/cancel` pasa el evento a `cancelled`. Un evento cancelado o completado ya no se puede modificar y responde `409`._
+#### Listado con filtros
 
-Si un organizer intenta modificar o cancelar un evento de otro organizer, recibe `403`:
+`GET /api/events` es público. Los eventos en `draft` solo los ven su organizer dueño y los admin; para el resto (sin sesión, `user` u otro organizer) no existen. La sesión es opcional en esta ruta.
+
+| Query      | Descripción                                                                       |
+| ---------- | --------------------------------------------------------------------------------- |
+| `status`   | `draft`, `published`, `cancelled` o `finished`. Por defecto devuelve los eventos visibles para quien consulta |
+| `category` | Coincidencia exacta                                                               |
+| `location` | Coincidencia parcial, sin distinguir mayúsculas                                   |
+| `dateFrom` | Eventos con `date` mayor o igual                                                  |
+| `dateTo`   | Eventos con `date` menor o igual                                                  |
+| `page`     | Página, por defecto `1`                                                           |
+| `limit`    | Elementos por página, por defecto `10`, máximo `50`                               |
+| `sort`     | `date`, `price`, `title`, `capacity` o `createdAt`; con `-` delante es descendente. Por defecto `date` |
+
+Ejemplo: `GET /api/events?status=published&category=workshop&page=2&limit=5&sort=-date`
+
+```json
+{
+	"status": "success",
+	"data": [],
+	"page": 2,
+	"limit": 5,
+	"total": 12,
+	"totalPages": 3,
+	"message": "Eventos obtenidos con exito."
+}
+```
+
+Parámetros inválidos responden `400`. `GET /api/events/:id` devuelve `404` si el evento no existe o es un `draft` que quien consulta no puede ver.
+
+#### Actualización y estados
+
+- `PUT /api/events/:id` acepta cualquier combinación de `title`, `description`, `category`, `location`, `date`, `capacity` y `price`. `organizer` y `status` no se pueden modificar por esta ruta.
+- `PATCH /api/events/:id/status` recibe `{ "status": "published" }` y aplica estas transiciones: `draft → published | cancelled`, `published → cancelled | finished`. Un evento `cancelled` o `finished` es inmodificable y responde `409`.
+- Cancelar es solo cambiar el estado a `cancelled`, los eventos nunca se eliminan.
+
+#### Reglas de negocio de eventos
+
+Viven en `src/services/event.service.js`:
+
+- La fecha del evento debe ser futura al crear o editarla.
+- `capacity` debe ser entero mayor a 0 y `price` no puede ser negativo.
+- No se puede publicar un evento con fecha pasada, cancelado ni finalizado.
+- No se puede cancelar un evento cuya fecha ya pasó.
+- La capacidad no puede reducirse por debajo de los cupos ya reservados.
+- Un organizer solo modifica sus eventos; un admin modifica cualquiera (`403` en otro caso).
+- Los eventos cancelados no se modifican (no se documentó ninguna excepción).
 
 ```json
 {
 	"status": "error",
 	"error": "not_authorized",
-	"message": "Solo el organizador del evento o un admin pueden modificarlo"
+	"message": "Solo el organizador del evento o un admin pueden realizar esta acción"
 }
 ```
+
+### Tickets e inscripciones
+
+Modelo `Ticket`: `user` y `event` (referencias `ObjectId`), `status`, `quantity` (entero ≥ 1, por defecto 1), `reservationCode` (único, formato `TCK-XXXXXXXX`), `createdAt` y `cancelledAt`.
+
+Estados: `confirmed` (por defecto al inscribirse), `pending` y `cancelled`. Los tickets nunca se eliminan.
+
+#### Flujo de inscripción
+
+`POST /api/events/:eid/tickets` con body opcional `{ "quantity": 2 }` (por defecto 1). El usuario sale de la sesión. Las validaciones se hacen en `src/services/ticket.service.js` en este orden:
+
+1. Sesión válida (`401`).
+2. `quantity` es un entero mayor a 0 (`400`).
+3. El evento existe (`404`).
+4. El evento no está `cancelled` ni `finished` y su fecha no pasó (`409`).
+5. El evento está `published` (`409`).
+6. El usuario no tiene ya un ticket activo para ese evento (`409`).
+7. Hay cupo suficiente (`409`, el mensaje indica cupos disponibles y solicitados).
+
+Si todo es válido se crea el ticket y se envía el email de confirmación. Si el envío falla, la inscripción sigue siendo válida y el error se registra en consola.
+
+#### Regla de cupos
+
+Cupos ocupados = suma de `quantity` de los tickets del evento con estado `confirmed` o `pending`. Los `cancelled` no cuentan, por eso al cancelar un ticket el cupo queda libre automáticamente sin tocar el evento. Disponible = `capacity` − ocupados.
+
+#### Consultas y cancelación
+
+- `GET /api/tickets/my-tickets` devuelve solo los tickets del usuario autenticado, con `event` poblado (`title`, `date`, `location`).
+- `GET /api/events/:eid/tickets` lo ven el organizer dueño del evento o un admin (`403` en otro caso). Cada ticket incluye `first_name`, `last_name` y `email` del inscripto.
+- `PATCH /api/tickets/:tid/cancel` lo puede ejecutar el dueño del ticket o un admin. Responde `404` si no existe, `403` si es ajeno, `409` si ya estaba cancelado o si el evento ya finalizó. Cambia `status` a `cancelled`, registra `cancelledAt` y envía un email de cancelación al dueño.
 
 ## Registro de usuarios
 

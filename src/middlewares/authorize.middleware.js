@@ -18,7 +18,7 @@ export async function authorizeEventOwnerOrAdmin(req, res, next) {
 	try {
 		if (!req.user) throw new AppError(ERROR_CODES.NOT_AUTHENTICATED);
 
-		const event = await EventService.getById(req.params.id);
+		const event = await EventService.getById(req.params.eid ?? req.params.id);
 
 		const canUpdateAny = PERMISSIONS.EVENTS_UPDATE_ANY.includes(req.user.role);
 		const isOwner = event.organizer.toString() === req.user._id.toString();
@@ -26,7 +26,7 @@ export async function authorizeEventOwnerOrAdmin(req, res, next) {
 		if (!canUpdateAny && !isOwner)
 			throw new AppError(
 				ERROR_CODES.NOT_AUTHORIZED,
-				'Solo el organizador del evento o un admin pueden modificarlo',
+				'Solo el organizador del evento o un admin pueden realizar esta acción',
 			);
 
 		req.event = event;

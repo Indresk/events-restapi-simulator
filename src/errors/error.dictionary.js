@@ -47,6 +47,22 @@ export const errorsDictionary = {
 	},
 	[ERROR_CODES.EVENT_FULLFILLED]: {
 		statusCode: 409,
-		message: 'No se puede procesar porque el evento se canceló o se completó',
+		message: 'No se puede procesar porque el evento se canceló o finalizó',
+	},
+	[ERROR_CODES.EVENT_NOT_AVAILABLE]: {
+		statusCode: 409,
+		message: 'El evento no está disponible para inscripciones',
+	},
+	[ERROR_CODES.EVENT_NO_CAPACITY]: {
+		statusCode: 409,
+		message: 'No hay cupos suficientes disponibles',
+	},
+	[ERROR_CODES.TICKET_ALREADY_EXISTS]: {
+		statusCode: 409,
+		message: 'Ya tienes una inscripción activa para este evento',
+	},
+	[ERROR_CODES.TICKET_ALREADY_CANCELLED]: {
+		statusCode: 409,
+		message: 'El ticket ya está cancelado',
 	},
 };

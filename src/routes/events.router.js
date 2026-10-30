@@ -1,6 +1,10 @@
 import express from 'express';
 import EventController from '../controllers/event.controller.js';
-import { authenticate } from '../middlewares/auth.middleware.js';
+import TicketController from '../controllers/ticket.controller.js';
+import {
+	authenticate,
+	optionalAuthenticate,
+} from '../middlewares/auth.middleware.js';
 import {
 	authorize,
 	authorizeEventOwnerOrAdmin,
@@ -9,11 +13,9 @@ import { PERMISSIONS } from '../constants/permissions.js';
 
 const router = express.Router();
 
-// solo devuelven eventos con status 'published'
-router.get('/', EventController.getAll);
-router.get('/:id', EventController.getById);
+router.get('/', optionalAuthenticate, EventController.getAll);
+router.get('/:id', optionalAuthenticate, EventController.getById);
 
-// crear eventos
 router.post(
 	'/',
 	authenticate,
@@ -21,8 +23,8 @@ router.post(
 	EventController.create,
 );
 
-// modificar / cancelar: organizer sobre sus eventos, admin sobre cualquiera
-router.patch(
+// modificar / cambiar estado: organizer sobre sus eventos, admin sobre cualquiera
+router.put(
 	'/:id',
 	authenticate,
 	authorize(...PERMISSIONS.EVENTS_UPDATE_OWN),
@@ -30,11 +32,20 @@ router.patch(
 	EventController.update,
 );
 router.patch(
-	'/:id/cancel',
+	'/:id/status',
 	authenticate,
 	authorize(...PERMISSIONS.EVENTS_UPDATE_OWN),
 	authorizeEventOwnerOrAdmin,
-	EventController.cancel,
+	EventController.updateStatus,
+);
+
+router.post('/:eid/tickets', authenticate, TicketController.create);
+router.get(
+	'/:eid/tickets',
+	authenticate,
+	authorize(...PERMISSIONS.EVENTS_READ_TICKETS),
+	authorizeEventOwnerOrAdmin,
+	TicketController.getByEvent,
 );
 
 export default router;

@@ -1,9 +1,12 @@
 import Event from '../models/event.js';
 
 class EventRepository {
-	static async getAll(filter = {}) {
-		const events = await Event.find(filter);
-		return events;
+	static async getPaginated({ filter, sort, skip, limit }) {
+		const [events, total] = await Promise.all([
+			Event.find(filter).sort(sort).skip(skip).limit(limit),
+			Event.countDocuments(filter),
+		]);
+		return { events, total };
 	}
 
 	static async getById(id) {
@@ -19,22 +22,22 @@ class EventRepository {
 	static async create({
 		title,
 		description,
+		category,
+		date,
 		location,
-		startDate,
-		endDate,
-		organizer,
 		capacity,
 		price,
+		organizer,
 	}) {
 		const event = await Event.create({
 			title,
 			description,
+			category,
+			date,
 			location,
-			startDate,
-			endDate,
-			organizer,
 			capacity,
 			price,
+			organizer,
 		});
 
 		return event;
@@ -52,15 +55,6 @@ class EventRepository {
 		const eventUpdated = await Event.findByIdAndUpdate(
 			id,
 			{ status },
-			{ returnDocument: 'after' },
-		);
-		return eventUpdated;
-	}
-
-	static async updateTikets({ id, ticketsSold }) {
-		const eventUpdated = await Event.findByIdAndUpdate(
-			id,
-			{ ticketsSold },
 			{ returnDocument: 'after' },
 		);
 		return eventUpdated;

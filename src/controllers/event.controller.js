@@ -4,11 +4,13 @@ import successFormatter from '../utils/successFormatter.js';
 class EventController {
 	static async getAll(req, res, next) {
 		try {
-			const payload = await EventService.getAllPublished();
+			const result = await EventService.getAllVisible(req.query, req.user);
 
-			res
-				.status(200)
-				.json(successFormatter(payload, 'Eventos obtenidos con exito.'));
+			res.status(200).json({
+				status: 'success',
+				...result,
+				message: 'Eventos obtenidos con exito.',
+			});
 		} catch (error) {
 			next(error);
 		}
@@ -17,7 +19,7 @@ class EventController {
 	static async getById(req, res, next) {
 		try {
 			const { id } = req.params;
-			const payload = await EventService.getPublishedById(id);
+			const payload = await EventService.getVisibleById(id, req.user);
 
 			res
 				.status(200)
@@ -29,26 +31,7 @@ class EventController {
 
 	static async create(req, res, next) {
 		try {
-			const {
-				title,
-				description,
-				location,
-				startDate,
-				endDate,
-				capacity = null,
-				price,
-			} = req.body;
-
-			const payload = await EventService.create({
-				title,
-				description,
-				location,
-				startDate,
-				endDate,
-				organizer: req.user._id,
-				capacity,
-				price,
-			});
+			const payload = await EventService.create(req.body, req.user._id);
 
 			res
 				.status(201)
@@ -71,14 +54,17 @@ class EventController {
 		}
 	}
 
-	static async cancel(req, res, next) {
+	static async updateStatus(req, res, next) {
 		try {
 			const { id } = req.params;
-			const payload = await EventService.cancel(id);
+			const { status } = req.body ?? {};
+			const payload = await EventService.updateStatus(id, status);
 
 			res
 				.status(200)
-				.json(successFormatter(payload, 'Evento cancelado con exito.'));
+				.json(
+					successFormatter(payload, 'Estado del evento actualizado con exito.'),
+				);
 		} catch (error) {
 			next(error);
 		}
