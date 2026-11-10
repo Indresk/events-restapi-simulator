@@ -435,14 +435,14 @@ La estrategia `current` no se usa directamente en las rutas. Se usa a través de
 │   ├── config // Capa de configuración base y de librerias
 │   ├── constants // Capa de constantes y enumeraciones
 │   ├── controllers // Capa de controladores que solo se encargan de recibir la request y devolver la response
-│   ├── dao // Capa de acceso a datos, que se encarga de la comunicación con la base de datos
-│   ├── dto // Capa de objetos de transferencia de datos, que se encarga de validar y transformar los datos de entrada y salida
-│   ├── errors // Capa de errores personalizados
+│   ├── dao // Capa de acceso a datos, que se encarga de la comunicación con la base de datos.
+│   ├── dto // Capa de objetos de transferencia de datos, que se encarga de transformar los datos de salida
+│   ├── errors // Carpeta con la defición del objeto de error personalizado, el diccionario de errores y la libreria de codigos de error.
 │   ├── middlewares // Capa de middlewares que se encargan de la autenticación, autorización y validación de datos
 │   ├── models // Capa de modelos de datos, que se encarga de definir los esquemas de la base de datos
 │   ├── repositories // Capa que se encarga del desacoplamiento entre la capa de acceso a datos y la capa de servicios
 │   ├── routes // Capa de rutas que se encargan de definir los endpoints y los controladores que los manejan
-│   ├── scripts
+│   ├── scripts // Carpeta para scripts, por el momento solo tiene el que seedea el primer admin.
 │   ├── services // Capa de servicios que se encargan de la lógica de negocio
 │   ├── utils // Utilidades que se encargan de funciones auxiliares
 │   ├── app.js // Archivo principal de la aplicación que crea la instancia de express y configura los middlewares y rutas
