@@ -1,6 +1,6 @@
 import UserService from '../services/user.service.js';
 import successFormatter from '../utils/successFormatter.js';
-import { UserDTO } from '../dto/index.js';
+import { UserDTO } from '../dto/user.dto.js';
 
 class UserController {
 	static async getAll(req, res, next) {

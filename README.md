@@ -88,20 +88,20 @@ Si el email ya existe, el script promueve ese usuario a admin.
 
 ## Matriz de permisos
 
-| Acción                                  | user | organizer | admin |
-| --------------------------------------- | :--: | :-------: | :---: |
-| Consultar eventos no `draft`            |  ✅  |    ✅     |  ✅   |
-| Consultar eventos `draft`               |  ❌  | solo propios |  ✅   |
-| Crear eventos                           |  ❌  |    ✅     |  ✅   |
-| Modificar/cambiar estado eventos propios |  ❌  |    ✅     |  ✅   |
-| Modificar cualquier evento              |  ❌  |    ❌     |  ✅   |
-| Inscribirse a un evento                 |  ✅  |    ✅     |  ✅   |
-| Ver y cancelar sus propios tickets      |  ✅  |    ✅     |  ✅   |
-| Ver tickets de un evento propio         |  ❌  |    ✅     |  ✅   |
-| Ver tickets de cualquier evento         |  ❌  |    ❌     |  ✅   |
-| Cancelar tickets ajenos                 |  ❌  |    ❌     |  ✅   |
-| Ver todos los usuarios                  |  ❌  |    ❌     |  ✅   |
-| Crear usuarios y cambiar roles          |  ❌  |    ❌     |  ✅   |
+| Acción                                   | user |  organizer   | admin |
+| ---------------------------------------- | :--: | :----------: | :---: |
+| Consultar eventos no `draft`             |  ✅  |      ✅      |  ✅   |
+| Consultar eventos `draft`                |  ❌  | solo propios |  ✅   |
+| Crear eventos                            |  ❌  |      ✅      |  ✅   |
+| Modificar/cambiar estado eventos propios |  ❌  |      ✅      |  ✅   |
+| Modificar cualquier evento               |  ❌  |      ❌      |  ✅   |
+| Inscribirse a un evento                  |  ✅  |      ✅      |  ✅   |
+| Ver y cancelar sus propios tickets       |  ✅  |      ✅      |  ✅   |
+| Ver tickets de un evento propio          |  ❌  |      ✅      |  ✅   |
+| Ver tickets de cualquier evento          |  ❌  |      ❌      |  ✅   |
+| Cancelar tickets ajenos                  |  ❌  |      ❌      |  ✅   |
+| Ver todos los usuarios                   |  ❌  |      ❌      |  ✅   |
+| Crear usuarios y cambiar roles           |  ❌  |      ❌      |  ✅   |
 
 La matriz está definida en código en `src/constants/permissions.js`. Las rutas la consumen a través del middleware de autorización, así que ningún router escribe roles a mano:
 
@@ -220,16 +220,16 @@ Respuesta esperada `201`:
 
 `GET /api/events` es público. Los eventos en `draft` solo los ven su organizer dueño y los admin; para el resto (sin sesión, `user` u otro organizer) no existen. La sesión es opcional en esta ruta.
 
-| Query      | Descripción                                                                       |
-| ---------- | --------------------------------------------------------------------------------- |
+| Query      | Descripción                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
 | `status`   | `draft`, `published`, `cancelled` o `finished`. Por defecto devuelve los eventos visibles para quien consulta |
-| `category` | Coincidencia exacta                                                               |
-| `location` | Coincidencia parcial, sin distinguir mayúsculas                                   |
-| `dateFrom` | Eventos con `date` mayor o igual                                                  |
-| `dateTo`   | Eventos con `date` menor o igual                                                  |
-| `page`     | Página, por defecto `1`                                                           |
-| `limit`    | Elementos por página, por defecto `10`, máximo `50`                               |
-| `sort`     | `date`, `price`, `title`, `capacity` o `createdAt`; con `-` delante es descendente. Por defecto `date` |
+| `category` | Coincidencia exacta                                                                                           |
+| `location` | Coincidencia parcial, sin distinguir mayúsculas                                                               |
+| `dateFrom` | Eventos con `date` mayor o igual                                                                              |
+| `dateTo`   | Eventos con `date` menor o igual                                                                              |
+| `page`     | Página, por defecto `1`                                                                                       |
+| `limit`    | Elementos por página, por defecto `10`, máximo `50`                                                           |
+| `sort`     | `date`, `price`, `title`, `capacity` o `createdAt`; con `-` delante es descendente. Por defecto `date`        |
 
 Ejemplo: `GET /api/events?status=published&category=workshop&page=2&limit=5&sort=-date`
 
@@ -432,21 +432,21 @@ La estrategia `current` no se usa directamente en las rutas. Se usa a través de
 
 ```bash
 ├── src
-│   ├── config
-│   ├── constants
-│   ├── controllers
-│   ├── dao
-│   ├── dto
-│   ├── errors
-│   ├── middlewares
-│   ├── models
-│   ├── repositories
-│   ├── routes
+│   ├── config // Capa de configuración base y de librerias
+│   ├── constants // Capa de constantes y enumeraciones
+│   ├── controllers // Capa de controladores que solo se encargan de recibir la request y devolver la response
+│   ├── dao // Capa de acceso a datos, que se encarga de la comunicación con la base de datos
+│   ├── dto // Capa de objetos de transferencia de datos, que se encarga de validar y transformar los datos de entrada y salida
+│   ├── errors // Capa de errores personalizados
+│   ├── middlewares // Capa de middlewares que se encargan de la autenticación, autorización y validación de datos
+│   ├── models // Capa de modelos de datos, que se encarga de definir los esquemas de la base de datos
+│   ├── repositories // Capa que se encarga del desacoplamiento entre la capa de acceso a datos y la capa de servicios
+│   ├── routes // Capa de rutas que se encargan de definir los endpoints y los controladores que los manejan
 │   ├── scripts
-│   ├── services
-│   ├── utils
-│   ├── app.js
-│   └── server.js
+│   ├── services // Capa de servicios que se encargan de la lógica de negocio
+│   ├── utils // Utilidades que se encargan de funciones auxiliares
+│   ├── app.js // Archivo principal de la aplicación que crea la instancia de express y configura los middlewares y rutas
+│   └── server.js // Archivo que arranca el servidor y se conecta a la base de datos
 ├── .gitignore
 ├── .env.example
 ├── package.json

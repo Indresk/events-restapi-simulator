@@ -1,22 +1,16 @@
-import Event from '../models/event.js';
+import EventDAO from '../dao/event.dao.js';
 
 class EventRepository {
 	static async getPaginated({ filter, sort, skip, limit }) {
-		const [events, total] = await Promise.all([
-			Event.find(filter).sort(sort).skip(skip).limit(limit),
-			Event.countDocuments(filter),
-		]);
-		return { events, total };
+		return await EventDAO.getPaginated({ filter, sort, skip, limit });
 	}
 
 	static async getById(id) {
-		const event = await Event.findById(id);
-		return event;
+		return await EventDAO.getById(id);
 	}
 
 	static async getOne(filter) {
-		const event = await Event.findOne(filter);
-		return event;
+		return await EventDAO.getOne(filter);
 	}
 
 	static async create({
@@ -29,7 +23,7 @@ class EventRepository {
 		price,
 		organizer,
 	}) {
-		const event = await Event.create({
+		return await EventDAO.create({
 			title,
 			description,
 			category,
@@ -39,30 +33,18 @@ class EventRepository {
 			price,
 			organizer,
 		});
-
-		return event;
 	}
 
 	static async update(id, data) {
-		const eventUpdated = await Event.findByIdAndUpdate(id, data, {
-			returnDocument: 'after',
-			runValidators: true,
-		});
-		return eventUpdated;
+		return await EventDAO.update(id, data);
 	}
 
 	static async updateStatus({ id, status }) {
-		const eventUpdated = await Event.findByIdAndUpdate(
-			id,
-			{ status },
-			{ returnDocument: 'after' },
-		);
-		return eventUpdated;
+		return await EventDAO.updateStatus({ id, status });
 	}
 
 	static async insertMany(events) {
-		const newEvents = await Event.insertMany(events);
-		return newEvents;
+		return await EventDAO.insertMany(events);
 	}
 }
 

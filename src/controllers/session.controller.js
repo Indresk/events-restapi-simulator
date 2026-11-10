@@ -1,5 +1,5 @@
 import { SESSION_NAME, sessionConfig } from '../config/cookies.js';
-import { UserDTO } from '../dto/index.js';
+import { UserDTO } from '../dto/user.dto.js';
 import { createToken } from '../utils/jwt.js';
 import successFormatter from '../utils/successFormatter.js';
 

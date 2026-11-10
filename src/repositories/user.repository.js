@@ -1,46 +1,34 @@
-import User from '../models/user.js';
-import { USER_ROLES } from '../constants/index.js';
+import UserDAO from '../dao/user.dao.js';
 
 class UserRepository {
 	static async getAll() {
-		const users = await User.find();
-		return users;
+		return await UserDAO.getAll();
 	}
 
 	static async getById(id) {
-		const user = await User.findById(id);
-		return user;
+		return await UserDAO.getById(id);
 	}
 
 	static async getByEmail(email) {
-		const user = await User.findOne({ email });
-		return user;
+		return await UserDAO.getByEmail(email);
 	}
 
 	static async create({ first_name, last_name, email, role, password }) {
-		const user = await User.create({
+		return await UserDAO.create({
 			first_name,
 			last_name,
 			email,
-			role: role || USER_ROLES.USER,
+			role,
 			password,
 		});
-
-		return user;
 	}
 
 	static async updateRole({ id, role }) {
-		const newUser = await User.findByIdAndUpdate(
-			id,
-			{ role },
-			{ returnDocument: 'after' },
-		);
-		return newUser;
+		return await UserDAO.updateRole({ id, role });
 	}
 
 	static async insertMany(users) {
-		const newUsers = await User.insertMany(users);
-		return newUsers;
+		return await UserDAO.insertMany(users);
 	}
 }
 

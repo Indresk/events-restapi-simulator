@@ -1,3 +1,4 @@
+import { TicketResponseDTO } from '../dto/ticket.dto.js';
 import TicketService from '../services/ticket.service.js';
 import successFormatter from '../utils/successFormatter.js';
 
@@ -7,11 +8,13 @@ class TicketController {
 			const { eid } = req.params;
 			const { quantity } = req.body ?? {};
 
-			const payload = await TicketService.enroll({
-				eventId: eid,
-				user: req.user,
-				quantity,
-			});
+			const payload = new TicketResponseDTO(
+				await TicketService.enroll({
+					eventId: eid,
+					user: req.user,
+					quantity,
+				}),
+			);
 
 			res
 				.status(201)
@@ -23,7 +26,9 @@ class TicketController {
 
 	static async getMine(req, res, next) {
 		try {
-			const payload = await TicketService.getMyTickets(req.user._id);
+			const payload = (await TicketService.getMyTickets(req.user._id)).map(
+				(ticket) => new TicketResponseDTO(ticket),
+			);
 
 			res
 				.status(200)
@@ -36,7 +41,9 @@ class TicketController {
 	static async getByEvent(req, res, next) {
 		try {
 			const { eid } = req.params;
-			const payload = await TicketService.getByEvent(eid);
+			const payload = (await TicketService.getByEvent(eid)).map(
+				(ticket) => new TicketResponseDTO(ticket),
+			);
 
 			res
 				.status(200)
@@ -49,10 +56,12 @@ class TicketController {
 	static async cancel(req, res, next) {
 		try {
 			const { tid } = req.params;
-			const payload = await TicketService.cancel({
-				ticketId: tid,
-				user: req.user,
-			});
+			const payload = new TicketResponseDTO(
+				await TicketService.cancel({
+					ticketId: tid,
+					user: req.user,
+				}),
+			);
 
 			res
 				.status(200)
