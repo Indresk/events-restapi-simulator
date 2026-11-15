@@ -2,7 +2,7 @@
 	"name": "events-restapi-simulator",
 	"version": "1.0.0",
 	"description": "Este proyecto es una REST API desarrollada en Node.js utilizando Express y MongoDB. Simula ser un API de gestion de eventos musicales.",
-	"main": "index.js",
+	"main": "server.js",
 	"dependencies": {
 		"bcrypt": "^6.0.0",
 		"cookie-parser": "^1.4.7",
@@ -20,7 +20,12 @@
 	"scripts": {
 		"start": "node ./src/server.js",
 		"dev": "node --watch ./src/server.js",
-		"seed:admin": "node ./src/scripts/seedAdmin.js"
+		"seed": "node ./src/scripts/seed.js",
+		"seed:admin": "node ./src/scripts/seedAdmin.js",
+		"seed:user": "node ./src/scripts/seedUser.js",
+		"seed:organizer": "node ./src/scripts/seedOrganizer.js",
+		"seed:event": "node ./src/scripts/seedEvent.js",
+		"seed:ticket": "node ./src/scripts/seedTicket.js"
 	},
 	"repository": {
 		"type": "git",

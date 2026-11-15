@@ -15,7 +15,7 @@ class EventController {
 				.status(200)
 				.json(
 					successFormatter(
-						{ eventsAdjusted, ...result },
+						{ data: eventsAdjusted, ...result },
 						'Eventos obtenidos con exito.',
 					),
 				);

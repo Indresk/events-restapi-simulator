@@ -13,6 +13,7 @@ Este proyecto es una REST API desarrollada en Node.js utilizando Express y Mongo
 - Dotenv
 - Cookie-Parser
 - Nodemailer
+- Passport.js
 
 ## Instalación
 
@@ -28,7 +29,12 @@ Este proyecto es una REST API desarrollada en Node.js utilizando Express y Mongo
    ```bash
    npm install
    ```
-4. Crear el `.env` a partir de `.env.example` y crear el primer admin:
+4. Crear el `.env` a partir de `.env.example`.
+5. Cargar los datos de prueba (admin, user, organizer, evento y ticket), ver [Seeds](#seeds-datos-de-prueba):
+   ```bash
+   npm run seed
+   ```
+   O solo cargar el admin con las variables `ADMIN_*` del `.env` para producción:
    ```bash
    npm run seed:admin
    ```
@@ -78,13 +84,36 @@ El registro público (`POST /api/sessions/register`) siempre crea usuarios con r
 
 ### Primer admin
 
-Como nadie puede registrarse como admin, el primero se crea con un script. Usa las variables `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME` y `ADMIN_LAST_NAME` del `.env`:
+Como nadie puede registrarse como admin, el primero se crea con un script (ver [Seeds](#seeds-datos-de-prueba)). Usa las variables `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME` y `ADMIN_LAST_NAME` del `.env`:
 
 ```bash
 npm run seed:admin
 ```
 
 Si el email ya existe, el script promueve ese usuario a admin.
+
+## Seeds (datos de prueba)
+
+Cada entidad tiene su propio script en `src/scripts/` y además hay uno que los ejecuta todos en orden. Son idempotentes: si el dato ya existe se reutiliza, por lo que se pueden correr varias veces sin duplicar.
+
+| Comando                  | Script             | Qué crea                                                                            |
+| ------------------------ | ------------------ | ----------------------------------------------------------------------------------- |
+| `npm run seed`           | `seed.js`          | Ejecuta todos los siguientes en orden con una sola conexión                         |
+| `npm run seed:admin`     | `seedAdmin.js`     | Admin con las variables `ADMIN_*` del `.env` (o promueve al usuario si ya existe)   |
+| `npm run seed:user`      | `seedUser.js`      | Usuario de prueba con rol `user`                                                    |
+| `npm run seed:organizer` | `seedOrganizer.js` | Usuario de prueba con rol `organizer`                                               |
+| `npm run seed:event`     | `seedEvent.js`     | Evento `published` a 90 días del organizer de prueba (requiere `seed:organizer`)    |
+| `npm run seed:ticket`    | `seedTicket.js`    | Ticket del user de prueba al evento de prueba (requiere `seed:user` y `seed:event`) |
+
+Usuarios de prueba (los datos están en `src/scripts/seedData.js`):
+
+| Rol         | Email                  | Password                                                                       |
+| ----------- | ---------------------- | ------------------------------------------------------------------------------ |
+| `admin`     | valor de `ADMIN_EMAIL` | valor de `ADMIN_PASSWORD` (en `.env.example`: `admin@test.com` / `Admin.1234`) |
+| `organizer` | `organizer@test.com`   | `Organizer.1234`                                                               |
+| `user`      | `user@test.com`        | `User.1234`                                                                    |
+
+_Nota: el ticket del seed se crea directamente en la base de datos, por lo que no dispara el email de confirmación._
 
 ## Matriz de permisos
 
@@ -205,7 +234,7 @@ Respuesta esperada `201`:
 {
 	"status": "success",
 	"payload": {
-		"_id": "6ad0849f3f458ea59d3731c3",
+		"id": "6ad0849f3f458ea59d3731c3",
 		"title": "Workshop de folclor",
 		"organizer": "6ad0849f3f458ea59d3731c1",
 		"status": "draft"
@@ -236,11 +265,13 @@ Ejemplo: `GET /api/events?status=published&category=workshop&page=2&limit=5&sort
 ```json
 {
 	"status": "success",
-	"data": [],
-	"page": 2,
-	"limit": 5,
-	"total": 12,
-	"totalPages": 3,
+	"payload": {
+		"data": [],
+		"page": 2,
+		"limit": 5,
+		"total": 12,
+		"totalPages": 3
+	},
 	"message": "Eventos obtenidos con exito."
 }
 ```
@@ -442,7 +473,7 @@ La estrategia `current` no se usa directamente en las rutas. Se usa a través de
 │   ├── models // Capa de modelos de datos, que se encarga de definir los esquemas de la base de datos
 │   ├── repositories // Capa que se encarga del desacoplamiento entre la capa de acceso a datos y la capa de servicios
 │   ├── routes // Capa de rutas que se encargan de definir los endpoints y los controladores que los manejan
-│   ├── scripts // Carpeta para scripts, por el momento solo tiene el que seedea el primer admin.
+│   ├── scripts // Scripts de seed: uno por entidad (admin, user, organizer, event, ticket) y seed.js que los ejecuta todos.
 │   ├── services // Capa de servicios que se encargan de la lógica de negocio
 │   ├── utils // Utilidades que se encargan de funciones auxiliares
 │   ├── app.js // Archivo principal de la aplicación que crea la instancia de express y configura los middlewares y rutas
@@ -452,3 +483,46 @@ La estrategia `current` no se usa directamente en las rutas. Se usa a través de
 ├── package.json
 └── README.md
 ```
+
+## Flujo de autenticación e inscripción
+
+Flujo completo de punta a punta, usando los usuarios de [Seeds](#seeds-datos-de-prueba). Con `curl`, `-c cookies.txt` guarda la cookie de sesión y `-b cookies.txt` la envía.
+
+1. **Registro** (público, siempre crea rol `user`):
+   ```bash
+   curl -X POST http://localhost:8080/api/sessions/register -H "Content-Type: application/json" \
+     -d '{"first_name":"Ana","last_name":"Gómez","email":"ana@test.com","password":"Ana.12345"}'
+   ```
+2. **Login**: valida credenciales con la estrategia `login`, genera el JWT y lo guarda en una cookie `httpOnly` llamada `currentUser`. La respuesta nunca incluye `password`.
+   ```bash
+   curl -c cookies.txt -X POST http://localhost:8080/api/sessions/login -H "Content-Type: application/json" \
+     -d '{"email":"user@test.com","password":"User.1234"}'
+   ```
+3. **Sesión actual**: la estrategia `current` valida el JWT de la cookie. Sin cookie válida responde `401`.
+   ```bash
+   curl -b cookies.txt http://localhost:8080/api/sessions/current
+   ```
+4. **Crear el evento** (como `organizer` o `admin`; un `user` recibe `403`). Se crea en `draft`, por lo que hay que publicarlo para habilitar inscripciones:
+   ```bash
+   curl -b organizer-cookies.txt -X POST http://localhost:8080/api/events -H "Content-Type: application/json" \
+     -d '{"title":"Congreso Tech","description":"Charlas","category":"tech","location":"CABA","date":"2027-03-01T20:00:00.000Z","capacity":50,"price":0}'
+   curl -b organizer-cookies.txt -X PATCH http://localhost:8080/api/events/<EVENT_ID>/status -H "Content-Type: application/json" \
+     -d '{"status":"published"}'
+   ```
+5. **Inscripción** (como `user`). El servicio valida que el evento esté publicado y a futuro, que no exista un ticket activo del mismo usuario (`409`) y que haya cupo suficiente (`409`). Si todo es válido crea el ticket con su `reservationCode`, descuenta el cupo y envía el email de confirmación por Nodemailer:
+   ```bash
+   curl -b cookies.txt -X POST http://localhost:8080/api/events/<EVENT_ID>/tickets -H "Content-Type: application/json" \
+     -d '{"quantity":1}'
+   ```
+6. **Ver mis tickets** (con datos básicos del evento):
+   ```bash
+   curl -b cookies.txt http://localhost:8080/api/tickets/my-tickets
+   ```
+7. **Cancelar** el ticket (no se elimina, pasa a `cancelled`, se libera el cupo y se puede volver a inscribir):
+   ```bash
+   curl -b cookies.txt -X PATCH http://localhost:8080/api/tickets/<TICKET_ID>/cancel
+   ```
+8. **Logout**: borra la cookie; luego `GET /api/sessions/current` vuelve a responder `401`.
+   ```bash
+   curl -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/sessions/logout
+   ```

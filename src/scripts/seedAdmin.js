@@ -1,13 +1,10 @@
-// Crea el primer admin
-import mongoose from 'mongoose';
-import config from '../config/index.js';
-import connectDB from '../config/db.js';
-import UserRepository from '../repositories/user.repository.js';
+// Crea el primer admin (o promueve al usuario existente con ADMIN_EMAIL)
 import { USER_ROLES } from '../constants/index.js';
-import { createHash } from '../utils/hash.js';
-import { emailSchema, passwordSchema } from '../utils/zodSchemas.js';
+import UserRepository from '../repositories/user.repository.js';
+import { emailSchema } from '../utils/zodSchemas.js';
+import { ensureUser, runIfMain } from './helpers.js';
 
-async function seedAdmin() {
+export async function seedAdmin() {
 	const {
 		ADMIN_EMAIL,
 		ADMIN_PASSWORD,
@@ -23,8 +20,6 @@ async function seedAdmin() {
 	const email = emailSchema.safeParse(ADMIN_EMAIL);
 	if (!email.success) throw new Error('ADMIN_EMAIL no es un email válido');
 
-	await connectDB();
-
 	const existing = await UserRepository.getByEmail(email.data);
 
 	if (existing) {
@@ -32,27 +27,17 @@ async function seedAdmin() {
 			id: existing._id,
 			role: USER_ROLES.ADMIN,
 		});
-		console.info(`Usuario ${email.data} creado como admin`);
-		return;
+		console.info(`Usuario ${email.data} asignado como admin.`);
+		return existing;
 	}
 
-	const password = passwordSchema.safeParse(ADMIN_PASSWORD);
-	if (!password.success)
-		throw new Error('ADMIN_PASSWORD no cumple los requisitos de contraseña');
-
-	await UserRepository.create({
+	return ensureUser({
 		first_name: ADMIN_FIRST_NAME,
 		last_name: ADMIN_LAST_NAME,
 		email: email.data,
-		password: await createHash(password.data),
+		password: ADMIN_PASSWORD,
 		role: USER_ROLES.ADMIN,
 	});
-	console.info(`Admin ${email.data} creado en ${config.NODE_ENV}.`);
 }
 
-seedAdmin()
-	.catch((error) => {
-		console.error(`No se pudo crear el admin: ${error.message}`);
-		process.exitCode = 1;
-	})
-	.finally(() => mongoose.disconnect());
+runIfMain(import.meta.url, seedAdmin);
