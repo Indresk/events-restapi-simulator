@@ -9,6 +9,7 @@ import { Strategy as JwtStrategy } from 'passport-jwt';
 import { cookieExtractor } from './cookies.js';
 import config from './index.js';
 import { USER_ROLES } from '../constants/index.js';
+import { sanitizeUser } from '../utils/sanitizeUser.js';
 
 passport.use(
 	'register',
@@ -61,9 +62,7 @@ passport.use(
 					role: USER_ROLES.USER,
 				});
 
-				const newUser = user.toObject();
-
-				return done(null, newUser);
+				return done(null, sanitizeUser(user));
 			} catch (error) {
 				return done(error);
 			}
@@ -105,7 +104,7 @@ passport.use(
 				if (!(await isValidPassword(password, hashedPassword)))
 					throw new AppError(ERROR_CODES.BAD_REQUEST, `Credenciales invalidas`);
 
-				return done(null, user);
+				return done(null, sanitizeUser(user));
 			} catch (error) {
 				return done(error);
 			}
@@ -124,9 +123,7 @@ passport.use(
 			try {
 				const userData = await UserRepository.getById(jwtPayload.id);
 				if (!userData || !userData.isActive) return done(null, false);
-				const user = userData.toObject();
-
-				return done(null, user);
+				return done(null, sanitizeUser(userData));
 			} catch (error) {
 				return done(error);
 			}

@@ -5,11 +5,12 @@ import UserRepository from '../repositories/user.repository.js';
 import ERROR_CODES from '../errors/error.codes.js';
 import { emailSchema, passwordSchema } from '../utils/zodSchemas.js';
 import { createHash } from '../utils/hash.js';
+import { sanitizeUser } from '../utils/sanitizeUser.js';
 
 class UserService {
 	static async getAll() {
 		const users = await UserRepository.getAll();
-		return users;
+		return users.map(sanitizeUser);
 	}
 
 	static async getById(id) {
@@ -28,7 +29,7 @@ class UserService {
 
 		const user = await UserRepository.getById(id);
 		if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND);
-		return user;
+		return sanitizeUser(user);
 	}
 
 	static async getByEmail(email) {
@@ -47,7 +48,7 @@ class UserService {
 
 		const user = await UserRepository.getByEmail(email);
 		if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND);
-		return user;
+		return sanitizeUser(user);
 	}
 
 	static async create({
@@ -98,7 +99,7 @@ class UserService {
 			role,
 		});
 
-		return user.toObject();
+		return sanitizeUser(user);
 	}
 
 	static async updateRole({ id, role }) {
@@ -123,7 +124,7 @@ class UserService {
 		});
 		if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND);
 
-		return user.toObject();
+		return sanitizeUser(user);
 	}
 }
 
